@@ -1,0 +1,377 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Nastaliq+Urdu:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+/* `dark:` utilities follow the .dark class set by ThemeProvider,
+   not the OS setting. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ── DESIGN TOKENS ──────────────────────────────────────────
+   Theme values live in CSS variables so switching .dark on <html>
+   re-colours everything without re-rendering React. */
+:root {
+  --primary:       #E8A020;
+  --primary-dark:  #c78614;
+  --primary-text:  #412402;
+
+  --bg-page:  #f0f0f2;
+  --bg-card:  #ffffff;
+  --bg-soft:  #f4f4f6;
+
+  --text-1:   #111827;
+  --text-2:   #6b7280;
+  --text-3:   #9ca3af;
+
+  --border:   #e0e0e4;
+
+  /* Active filter pill — brand amber in both themes (matches the active nav link) */
+  --pill-active-bg:   var(--primary);
+  --pill-active-text: var(--primary-text);
+
+  --shadow:       0 1px 2px rgba(15,23,42,0.05), 0 1px 4px rgba(15,23,42,0.06);
+  --shadow-hover: 0 6px 18px rgba(15,23,42,0.10), 0 0 0 1.5px var(--primary);
+
+  /* Hero / banner surface (top story, source header).
+     Light: warm white→amber wash with dark text. Dark: navy with white text. */
+  --hero-bg:      linear-gradient(135deg, #ffffff 0%, #fff7e8 55%, #fde3b3 100%);
+  --hero-overlay: none;
+  --hero-border:  #f3dcb0;
+  --hero-title:   #111827;
+  --hero-sub:     #4b5563;
+  --hero-meta:    #6b7280;
+  --hero-hover:   #b45309;
+  --hero-chip:    rgba(255,255,255,0.75);
+
+  /* Call-to-action panels (newsletter, alerts, search summary) */
+  --panel-bg:     #fff8ec;
+  --panel-border: #f6deb3;
+  --panel-title:  #412402;
+  --panel-text:   #7a5524;
+
+  /* Inputs placed on panels / footer */
+  --input-bg:          #ffffff;
+  --input-border:      #e0e0e4;
+  --input-text:        #111827;
+  --input-placeholder: #9ca3af;
+
+  /* Footer */
+  --footer-bg:      #ffffff;
+  --footer-border:  #e0e0e4;
+  --footer-heading: #111827;
+  --footer-text:    #4b5563;
+  --footer-link:    #6b7280;
+
+  /* Inter has no Arabic glyphs, so Urdu text automatically falls back to Nastaliq */
+  --font-en: 'Inter', 'Noto Nastaliq Urdu', -apple-system, 'Segoe UI', sans-serif;
+  --font-ur: 'Noto Nastaliq Urdu', 'Inter', serif;
+}
+
+.dark {
+  --bg-page:  #0f172a;
+  --bg-card:  #1e293b;
+  --bg-soft:  #162032;
+  --text-1:   #f1f5f9;
+  --text-2:   #94a3b8;
+  --text-3:   #64748b;
+  --border:   #2d3f55;
+  --shadow:   0 1px 6px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.05);
+  --shadow-hover: 0 6px 18px rgba(0,0,0,0.4), 0 0 0 1.5px var(--primary);
+
+  --hero-bg:      linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+  --hero-overlay: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 55%, transparent 100%);
+  --hero-border:  transparent;
+  --hero-title:   #ffffff;
+  --hero-sub:     rgba(255,255,255,0.72);
+  --hero-meta:    rgba(255,255,255,0.65);
+  --hero-hover:   var(--primary);
+  --hero-chip:    rgba(255,255,255,0.07);
+
+  --panel-bg:     linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  --panel-border: #2d3f55;
+  --panel-title:  #ffffff;
+  --panel-text:   rgba(255,255,255,0.6);
+
+  --input-bg:          rgba(255,255,255,0.08);
+  --input-border:      rgba(255,255,255,0.18);
+  --input-text:        #ffffff;
+  --input-placeholder: rgba(255,255,255,0.45);
+
+  --footer-bg:      #0b1222;
+  --footer-border:  #1e293b;
+  --footer-heading: #ffffff;
+  --footer-text:    #cbd5e1;
+  --footer-link:    #94a3b8;
+}
+
+/* Expose the variables as Tailwind colours: bg-card, text-ink, border-line… */
+@theme inline {
+  --font-sans: var(--font-en);
+  --font-urdu: var(--font-ur);
+
+  --color-primary:      var(--primary);
+  --color-primary-dark: var(--primary-dark);
+  --color-on-primary:   var(--primary-text);
+  --color-page:  var(--bg-page);
+  --color-card:  var(--bg-card);
+  --color-soft:  var(--bg-soft);
+  --color-ink:   var(--text-1);
+  --color-muted: var(--text-2);
+  --color-faint: var(--text-3);
+  --color-line:  var(--border);
+  --color-pill:    var(--pill-active-bg);
+  --color-on-pill: var(--pill-active-text);
+  --color-breaking: #e74c3c;
+
+  --color-hero-title: var(--hero-title);
+  --color-hero-sub:   var(--hero-sub);
+  --color-hero-meta:  var(--hero-meta);
+  --color-hero-hover: var(--hero-hover);
+  --color-hero-chip:  var(--hero-chip);
+  --color-panel-title: var(--panel-title);
+  --color-panel-text:  var(--panel-text);
+  --color-footer:         var(--footer-bg);
+  --color-footer-line:    var(--footer-border);
+  --color-footer-heading: var(--footer-heading);
+  --color-footer-text:    var(--footer-text);
+  --color-footer-link:    var(--footer-link);
+
+  --shadow-card:       var(--shadow);
+  --shadow-card-hover: var(--shadow-hover);
+}
+
+/* ── BASE ─────────────────────────────────────────────────── */
+@layer base {
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--font-en);
+    background: var(--bg-page);
+    color: var(--text-1);
+    -webkit-font-smoothing: antialiased;
+    transition: background-color .25s, color .25s;
+  }
+  /* Nastaliq needs extra vertical room */
+  html[lang='ur'] body { line-height: 1.9; }
+
+  button:not(:disabled), [role='button'] { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 99px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+}
+
+/* ── COMPONENTS ───────────────────────────────────────────────
+   Small set of repeated patterns. Utilities can still override these
+   because they live in a lower layer. */
+@layer components {
+  .wrap {
+    width: 100%;
+    max-width: 1220px;
+    margin-inline: auto;
+    padding-inline: 16px;
+  }
+  @media (min-width: 640px) { .wrap { padding-inline: 24px; } }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+  }
+  .card-link { transition: border-color .15s, box-shadow .15s; }
+  .card-link:hover,
+  .card-link:focus-within { border-color: var(--primary); box-shadow: var(--shadow-hover); }
+
+  .widget {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 16px;
+  }
+  .widget-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-1);
+  }
+
+  /* Section heading with the amber accent bar */
+  .sec-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-1);
+  }
+  .sec-title::before {
+    content: '';
+    width: 3px;
+    height: 20px;
+    border-radius: 2px;
+    background: var(--primary);
+    flex-shrink: 0;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.6;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Filter chips. Active state is driven by aria-pressed for accessibility. */
+  .pill {
+    padding: 5px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-2);
+    font-size: 12px;
+    white-space: nowrap;
+    transition: background-color .15s, color .15s, border-color .15s;
+  }
+  .pill:hover { border-color: var(--primary); }
+  .pill[aria-pressed='true'] {
+    background: var(--pill-active-bg);
+    border-color: var(--pill-active-bg);
+    color: var(--pill-active-text);
+    font-weight: 600;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 18px;
+    border-radius: 8px;
+    background: var(--primary);
+    color: var(--primary-text);
+    font-size: 13px;
+    font-weight: 700;
+    transition: background-color .15s, opacity .15s;
+  }
+  .btn-primary:hover:not(:disabled) { background: var(--primary-dark); }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-1);
+    font-size: 12px;
+    transition: border-color .15s, color .15s;
+  }
+  .btn-ghost:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+
+  .btn-primary:disabled, .btn-ghost:disabled { opacity: .55; cursor: not-allowed; }
+
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-soft);
+    color: var(--text-2);
+    transition: border-color .15s, color .15s;
+  }
+  .icon-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+  .field {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-1);
+    font-size: 13px;
+    outline: none;
+  }
+
+  /* Theme-aware surfaces (gradients can't be Tailwind colours, so they're classes) */
+  .hero-surface {
+    background: var(--hero-bg);
+    border: 1px solid var(--hero-border);
+  }
+  .hero-overlay { background: var(--hero-overlay); }
+
+  .panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 16px;
+  }
+
+  .panel-input {
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--input-text);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .panel-input::placeholder { color: var(--input-placeholder); }
+  .panel-input:focus { border-color: var(--primary); }
+
+  /* Urdu text block: Nastaliq font, right-to-left, tall line height */
+  .urdu {
+    font-family: var(--font-ur);
+    direction: rtl;
+    text-align: start;
+    line-height: 2.1;
+  }
+
+  /* Card whose whole surface is clickable through its title link, while
+     inner buttons (bookmark) stay separately clickable — avoids nesting a
+     <button> inside an <a>, which is invalid HTML. */
+  .stretched-link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  .skeleton {
+    border-radius: 8px;
+    background: linear-gradient(90deg, var(--bg-soft) 25%, var(--border) 50%, var(--bg-soft) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+  }
+}
+
+/* ── ANIMATIONS ───────────────────────────────────────────── */
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* Breaking ticker: content is rendered twice and shifted by half its width
+   for a seamless loop. RTL scrolls the other way. */
+@keyframes marquee     { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes marquee-rtl { from { transform: translateX(0); } to { transform: translateX(50%); } }
+.marquee {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: marquee 40s linear infinite;
+}
+[dir='rtl'] .marquee { animation-name: marquee-rtl; }
+.marquee:hover { animation-play-state: paused; }
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee, .skeleton { animation: none; }
+  html { scroll-behavior: auto; }
+}
