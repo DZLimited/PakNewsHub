@@ -9,7 +9,10 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "server": "npm --prefix server run dev",
-    "seed": "npm --prefix server run seed"
+    "seed": "npm --prefix server run seed",
+    "worker": "npm --prefix server run worker",
+    "ingest": "npm --prefix server run ingest",
+    "translate": "npm --prefix server run translate"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.0",

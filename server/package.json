@@ -7,15 +7,21 @@
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
-    "seed": "node src/seed.js"
+    "worker": "node src/worker.js",
+    "ingest": "node src/ingest/run.js",
+    "seed": "node src/seed.js",
+    "seed:real-only": "node src/seed.js --no-demo",
+    "translate": "node src/translate/run.js"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.6.0",
     "cors": "^2.8.6",
     "dotenv": "^18.0.9",
     "express": "^5.3.0",
-    "mongoose": "^8.24.8"
+    "mongoose": "^8.24.8",
+    "rss-parser": "^3.13.0"
   }
 }

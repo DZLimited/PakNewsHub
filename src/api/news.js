@@ -58,6 +58,18 @@ export async function fetchArticle(id) {
   }
 }
 
+/**
+ * Count a read (powers "Trending"). Fire-and-forget, at most once per article
+ * per page session — also absorbs React StrictMode's double effect in dev.
+ */
+const viewedThisSession = new Set();
+export function recordView(id) {
+  if (isMockMode || viewedThisSession.has(id)) return;
+  viewedThisSession.add(id);
+  fetch(`${API_URL}/articles/${encodeURIComponent(id)}/view`, { method: 'POST', keepalive: true })
+    .catch(() => {}); // a missed view count is not worth an error
+}
+
 /** Newsletter signup. Only available when the API server is connected. */
 export async function subscribe(email) {
   if (isMockMode) throw new ApiError('Newsletter signup needs the API server', 503);

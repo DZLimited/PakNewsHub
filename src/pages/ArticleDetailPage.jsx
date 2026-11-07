@@ -1,19 +1,21 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ChevronRight, Clock, Eye, ExternalLink, Share2 } from 'lucide-react';
 import CategoryTag from '../components/common/CategoryTag';
 import ArticleCard from '../components/common/ArticleCard';
 import BookmarkButton from '../components/common/BookmarkButton';
 import SourceLogo from '../components/common/SourceLogo';
+import ArticleImage from '../components/common/ArticleImage';
 import NewsletterForm from '../components/common/NewsletterForm';
 import { Skeleton, CardSkeleton } from '../components/common/Skeleton';
 import { ErrorState, QueryBoundary } from '../components/common/States';
 import NotFoundPage from './NotFoundPage';
 import { useArticle, useArticles } from '../hooks/useNews';
+import { recordView } from '../api/news';
 import { useLanguage } from '../context/language';
 import { getCategory } from '../data/categories';
 import { getSource } from '../data/sources';
-import { categoryEmoji, formatCount } from '../utils/format';
+import { formatCount } from '../utils/format';
 import { cn } from '../utils/cn';
 
 function ShareButtons({ article }) {
@@ -91,18 +93,29 @@ export default function ArticleDetailPage() {
 }
 
 function ArticleView({ article }) {
-  const { t, isUrdu, title, categoryLabel, ago } = useLanguage();
+  const { t, isUrdu, title, showsUrdu, categoryLabel, ago } = useLanguage();
   const category = getCategory(article.category);
   const source = getSource(article.source);
+
+  useEffect(() => { recordView(article.id); }, [article.id]);
 
   const related = useArticles({ category: article.category, exclude: article.id, limit: 3 });
   const moreFromSource = useArticles({ source: article.source, exclude: article.id, limit: 3 });
 
-  // Summary box shows the *other* language: Urdu summary for English readers
-  // and the English excerpt for Urdu readers.
+  // Demo articles have a full body. Real (RSS) articles only have a short
+  // summary — we never copy full stories — and link to the original.
+  const hasBody = Boolean(article.body?.length);
+  // For RSS articles in Urdu mode, the main text is the Urdu summary once the
+  // translator has produced one; otherwise the English excerpt.
+  const mainIsUrdu = !hasBody && isUrdu && Boolean(article.urduSummary);
+
+  // Summary box shows the *other* language (hidden when it doesn't exist yet
+  // or would just repeat the main text).
+  const englishBox = { label: t('englishSummary'), text: article.excerpt, dir: 'ltr', lang: 'en', className: '' };
+  const urduBox = { label: t('urduSummary'), text: article.urduSummary, dir: 'rtl', lang: 'ur', className: 'urdu text-[15px]' };
   const summary = isUrdu
-    ? { label: t('englishSummary'), text: article.excerpt, dir: 'ltr', lang: 'en', className: '' }
-    : { label: t('urduSummary'), text: article.urduSummary, dir: 'rtl', lang: 'ur', className: 'urdu text-[15px]' };
+    ? (hasBody || mainIsUrdu) && article.excerpt ? englishBox : null
+    : article.urduSummary ? urduBox : null;
 
   const externalUrl = article.url ?? source?.url;
   const externalLabel = article.url ? t('readOn', { source: article.sourceName }) : t('visit', { name: article.sourceName });
@@ -133,14 +146,16 @@ function ArticleView({ article }) {
             )}
           </div>
 
-          <h1 dir="auto" className={cn('mb-4.5 text-2xl font-extrabold leading-tight text-ink sm:text-[28px]', isUrdu && 'font-urdu leading-[1.8]')}>
+          <h1 dir="auto" className={cn('mb-4.5 text-2xl font-extrabold leading-tight text-ink sm:text-[28px]', showsUrdu(article) && 'font-urdu leading-[1.8]')}>
             {title(article)}
           </h1>
 
-          <div dir={summary.dir} lang={summary.lang} className="mb-5 rounded-e-xl border-s-[3px] border-primary bg-soft px-4.5 py-3.5">
-            <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-primary">{summary.label}</p>
-            <p className={cn('text-sm leading-relaxed text-ink', summary.className)}>{summary.text}</p>
-          </div>
+          {summary && (
+            <div dir={summary.dir} lang={summary.lang} className="mb-5 rounded-e-xl border-s-[3px] border-primary bg-soft px-4.5 py-3.5">
+              <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-primary">{summary.label}</p>
+              <p className={cn('text-sm leading-relaxed text-ink', summary.className)}>{summary.text}</p>
+            </div>
+          )}
 
           {/* Meta + actions */}
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4.5">
@@ -149,47 +164,78 @@ function ArticleView({ article }) {
                 <ExternalLink size={12} /> {article.sourceName}
               </Link>
               <span className="flex items-center gap-1.5"><Clock size={13} /> {ago(article.publishedAt)}</span>
-              <span className="flex items-center gap-1.5"><Eye size={13} /> {t('reads', { n: formatCount(article.views) })}</span>
-              <span className="flex items-center gap-1.5"><Clock size={13} /> {t('minRead', { n: article.readMinutes })}</span>
+              {article.views > 0 && (
+                <span className="flex items-center gap-1.5"><Eye size={13} /> {t('reads', { n: formatCount(article.views) })}</span>
+              )}
+              {article.readMinutes && (
+                <span className="flex items-center gap-1.5"><Clock size={13} /> {t('minRead', { n: article.readMinutes })}</span>
+              )}
             </div>
             <ShareButtons article={article} />
           </div>
 
-          {/* Image placeholder (articles don't have images yet) */}
-          <div aria-hidden className="mb-6 flex h-60 w-full items-center justify-center rounded-2xl border border-line bg-soft text-6xl">
-            {categoryEmoji(article.category)}
-          </div>
+          <ArticleImage
+            article={article}
+            alt={title(article)}
+            className="mb-6 h-60 w-full rounded-2xl border border-line sm:h-80"
+            emojiClassName="text-6xl"
+          />
 
-          {/* Body is English-only for now, so pin it LTR even in Urdu mode */}
-          <div dir="ltr" lang="en" className="mb-6">
-            {article.body?.map((para, i) => (
-              <p key={i} className="mb-4 text-[15px] leading-[1.8] text-ink">{para}</p>
-            ))}
-            {article.quote && (
-              <blockquote className="my-6 rounded-e-xl border-s-[3px] border-primary bg-soft px-5 py-4">
-                <p className="mb-2 text-base italic leading-relaxed text-ink">“{article.quote.text}”</p>
-                <span className="text-xs text-muted">— {article.quote.author}</span>
-              </blockquote>
-            )}
-          </div>
-
-          {/* Tags + source link */}
-          <div className="mb-7 flex flex-wrap items-center justify-between gap-3 border-y border-line py-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-muted">{t('tags')}:</span>
-              {article.tags?.map(tag => (
-                <Link key={tag} to={`/search?q=${encodeURIComponent(tag)}`}
-                      className="rounded border border-line bg-soft px-2.5 py-0.5 text-xs text-muted hover:border-primary hover:text-primary">
-                  {tag}
-                </Link>
+          {hasBody ? (
+            /* Demo body is English-only, so pin it LTR even in Urdu mode */
+            <div dir="ltr" lang="en" className="mb-6">
+              {article.body.map((para, i) => (
+                <p key={i} className="mb-4 text-[15px] leading-[1.8] text-ink">{para}</p>
               ))}
+              {article.quote && (
+                <blockquote className="my-6 rounded-e-xl border-s-[3px] border-primary bg-soft px-5 py-4">
+                  <p className="mb-2 text-base italic leading-relaxed text-ink">“{article.quote.text}”</p>
+                  <span className="text-xs text-muted">— {article.quote.author}</span>
+                </blockquote>
+              )}
             </div>
-            {externalUrl && (
-              <a href={externalUrl} target="_blank" rel="noopener noreferrer" className="btn-primary">
-                {externalLabel} <ExternalLink size={13} />
-              </a>
-            )}
-          </div>
+          ) : (
+            <div className="mb-6">
+              {mainIsUrdu ? (
+                <p lang="ur" className="urdu mb-4 text-[17px] text-ink">{article.urduSummary}</p>
+              ) : (
+                article.excerpt && (
+                  <p dir="ltr" lang="en" className="mb-4 text-[16px] leading-[1.8] text-ink">{article.excerpt}</p>
+                )
+              )}
+              {article.url && (
+                <div className="panel flex flex-wrap items-center justify-between gap-3 p-4">
+                  <p className="text-[13px] text-panel-text">{t('readFullStory', { source: article.sourceName })}</p>
+                  <a href={article.url} target="_blank" rel="noopener noreferrer" className="btn-primary">
+                    {t('readOn', { source: article.sourceName })} <ExternalLink size={13} />
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tags (+ source link for demo articles; real ones already have the
+              "Read on …" panel above). Hidden when there's nothing to show. */}
+          {(article.tags?.length > 0 || (hasBody && externalUrl)) && (
+            <div className="mb-7 flex flex-wrap items-center justify-between gap-3 border-y border-line py-4">
+              {article.tags?.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-muted">{t('tags')}:</span>
+                  {article.tags.map(tag => (
+                    <Link key={tag} to={`/search?q=${encodeURIComponent(tag)}`}
+                          className="rounded border border-line bg-soft px-2.5 py-0.5 text-xs text-muted hover:border-primary hover:text-primary">
+                      {tag}
+                    </Link>
+                  ))}
+                </div>
+              )}
+              {hasBody && externalUrl && (
+                <a href={externalUrl} target="_blank" rel="noopener noreferrer" className="btn-primary ms-auto">
+                  {externalLabel} <ExternalLink size={13} />
+                </a>
+              )}
+            </div>
+          )}
 
           {/* Related */}
           <section>

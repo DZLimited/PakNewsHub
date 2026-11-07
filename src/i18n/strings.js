@@ -21,6 +21,7 @@ export const strings = {
     urduSummary: 'اردو خلاصہ',
     englishSummary: 'English summary',
     reads: '{n} reads',
+    reads_one: '{n} read',
     minRead: '{n} min read',
     save: 'Save',
     saved: 'Saved',
@@ -112,6 +113,7 @@ export const strings = {
     subscribed: "You're subscribed — see you tomorrow morning.",
     subscribeFailed: 'Could not subscribe. Please try again.',
     shareFailed: 'Could not share this story',
+    readFullStory: 'This is a short summary. The full story is on {source}.',
   },
 
   ur: {
@@ -226,11 +228,16 @@ export const strings = {
     subscribed: 'آپ نے سبسکرائب کر لیا — کل صبح ملاقات ہو گی۔',
     subscribeFailed: 'سبسکرائب نہیں ہو سکا۔ دوبارہ کوشش کریں۔',
     shareFailed: 'یہ خبر شیئر نہیں ہو سکی',
+    readFullStory: 'یہ مختصر خلاصہ ہے۔ مکمل خبر {source} پر دستیاب ہے۔',
   },
 };
 
 export function translate(lang, key, vars) {
-  let text = strings[lang]?.[key] ?? strings.en[key] ?? key;
+  const table = strings[lang] ?? strings.en;
+  // Singular form: when vars.n is 1 and a `key_one` string exists, use it
+  // ("1 read" instead of "1 reads"). Urdu has no _one strings, so it falls through.
+  const singular = vars && String(vars.n) === '1' ? table[`${key}_one`] : undefined;
+  let text = singular ?? table[key] ?? strings.en[key] ?? key;
   if (vars) {
     for (const [k, v] of Object.entries(vars)) text = text.replaceAll(`{${k}}`, v);
   }

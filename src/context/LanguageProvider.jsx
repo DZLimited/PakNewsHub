@@ -21,13 +21,17 @@ export function LanguageProvider({ children }) {
 
   const value = useMemo(() => {
     const isUrdu = lang === 'ur';
+    // Real (RSS) articles get their Urdu title from the translator a little
+    // after they arrive — until then, fall back to English everywhere.
+    const hasUrdu = a => Boolean(a?.urduTitle);
     return {
       lang,
       isUrdu,
       toggleLanguage,
       t: (key, vars) => translate(lang, key, vars),
-      title: a => (isUrdu ? a.urduTitle : a.title),
-      altTitle: a => (isUrdu ? a.title : a.urduTitle),
+      title: a => (isUrdu && hasUrdu(a) ? a.urduTitle : a.title),
+      altTitle: a => (isUrdu ? (hasUrdu(a) ? a.title : null) : (a.urduTitle ?? null)),
+      showsUrdu: a => isUrdu && hasUrdu(a),
       categoryLabel: c => (c ? (isUrdu ? c.urdu : c.label) : ''),
       ago: iso => timeAgo(iso, lang),
     };
