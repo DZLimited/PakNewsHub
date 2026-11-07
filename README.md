@@ -1,8 +1,8 @@
 # PakNewsHub
 
-International news for Pakistani readers, in **English and Urdu**. Stories
-from BBC, Reuters, Al Jazeera, Dawn and others, each with an English headline,
-an Urdu headline and an Urdu summary.
+International news for Pakistani readers, in **English and Urdu**. Real
+stories are fetched from the RSS feeds of BBC, The Guardian, Dawn and DW every
+15 minutes, and Claude translates each headline and summary into Urdu.
 
 **Stack:** React 19 · Vite · Tailwind CSS 4 · React Router 7 · TanStack Query ·
 Zustand. The backend is Express 5 · MongoDB (Mongoose).
@@ -16,6 +16,8 @@ Zustand. The backend is Express 5 · MongoDB (Mongoose).
 - Bookmarks saved in the browser
 - Share (native share sheet or copy link) and WhatsApp share
 - Newsletter signup (needs the API server)
+- **Real news** from RSS feeds, refreshed every 15 minutes, with photos
+- **Automatic Urdu translation** of headlines and summaries (Claude, opt-in)
 - Responsive layout, loading skeletons, error states with retry, 404 pages
 
 ## Quick start (frontend only)
@@ -52,6 +54,53 @@ CORS setup in development.
 > Git Bash on Windows, `VITE_API_URL=/api npm run dev` gets rewritten to a
 > Windows path (`C:/Program Files/Git/api`).
 
+## Real news and Urdu translation
+
+The **worker** is a separate process that keeps the database filled:
+
+```bash
+cd server
+npm run seed:real-only       # sources & categories only (removes the demo stories)
+npm run ingest               # fetch all feeds once (≈25 s), then exit
+npm run worker               # keep running: feeds every 15 min, translation every minute
+```
+
+How ingestion works (`server/src/ingest/`):
+
+1. **Fetch** every feed in `feeds.js`, 6 at a time, 20 s timeout each. A feed
+   that fails is reported and retried on the next run; it never stops the others.
+2. **Clean** each item (`normalize.js`): strip tracking parameters from links,
+   strip HTML, cut the summary to about 280 characters, pick the largest image,
+   and tag stories that mention Pakistan (this powers "Pakistan Focus").
+3. **Save** only new stories, keyed by URL (`$setOnInsert`). Re-fetching is free,
+   and existing articles, including their translations, are never overwritten.
+4. MongoDB **deletes** real articles automatically after 60 days.
+
+> We store only the headline, a short summary, the image link and the source
+> link, never the full article. The article page links to the original
+> ("Read on BBC World").
+
+### Urdu translation (opt-in, paid)
+
+Every translation is a Claude API call, so translation is **off** until you turn it on:
+
+```bash
+# server/.env
+ANTHROPIC_API_KEY=sk-ant-...
+URDU_MODEL=claude-opus-5-5     # or claude-haiku-5-5: much cheaper
+```
+
+```bash
+npm run translate -- --limit 5   # try 5 stories and check the quality and tokens used
+# then in server/.env:  URDU_TRANSLATION=on   and restart the worker
+```
+
+Translation works as a queue (`server/src/translate/`). The newest stories are
+translated first, and a story is "claimed" so two workers never translate it
+twice. A bad answer is retried up to 3 times. A rate limit or a missing key
+puts the story back without using an attempt. Until a story is translated, the
+site shows its English headline in Urdu mode.
+
 ### Production
 
 ```bash
@@ -80,6 +129,9 @@ src/
 
 server/src/
   app.js                 Express app (routes, CORS, errors, static hosting)
+  worker.js              background jobs: feeds every 15 min, translation every minute
+  ingest/                feeds.js (feed list) · normalize.js (cleaning) · ingest.js (fetch + save)
+  translate/             Urdu translation queue (Claude API)
   models/                Article, Source, Category, Subscriber
   services/articleQuery.js  MongoDB version of the query rules
   routes/                articles, sources/categories, subscribers
@@ -95,6 +147,7 @@ server/src/
 | GET | `/api/articles/counts?groupBy=source\|category` | Counts per source/category → `{ id: n }` |
 | GET | `/api/sources` | All sources |
 | GET | `/api/categories` | All categories |
+| POST | `/api/articles/:id/view` | Count a read (powers "Trending") |
 | POST | `/api/subscribers` | `{ email }` → newsletter signup |
 | GET | `/api/health` | Server + DB status |
 
@@ -115,4 +168,10 @@ one, change the other too.
 | `npm run build` / `preview` | Production build / preview it |
 | `npm run lint` | ESLint (frontend + server) |
 | `npm run server` | Start the API in watch mode (runs `server/`) |
-| `npm run seed` | Seed MongoDB |
+| `npm run seed` | Seed MongoDB (sources, categories, demo stories) |
+| `npm run ingest` | Fetch all RSS feeds once |
+| `npm run worker` | Background worker (feeds + translation) |
+| `npm run translate -- --limit 5` | Translate a few queued stories now |
+
+In `server/`, `npm run seed:real-only` loads sources and categories and
+removes the demo stories.

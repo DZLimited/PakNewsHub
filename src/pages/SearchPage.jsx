@@ -147,11 +147,12 @@ export default function SearchPage() {
                         <span aria-hidden className="shrink-0 text-xl">✨</span>
                         <div>
                           <p className="mb-1.5 text-[13px] font-semibold text-panel-title">{t('topStorySummary')}</p>
+                          {/* Urdu summary only once the translator has made one */}
                           <p
-                            dir={isUrdu ? 'rtl' : 'ltr'}
-                            className={cn('text-xs leading-relaxed text-panel-text', isUrdu && 'urdu text-[13px]')}
+                            dir={isUrdu && top.urduSummary ? 'rtl' : 'ltr'}
+                            className={cn('text-xs leading-relaxed text-panel-text', isUrdu && top.urduSummary && 'urdu text-[13px]')}
                           >
-                            {isUrdu ? top.urduSummary : top.excerpt}
+                            {isUrdu && top.urduSummary ? top.urduSummary : top.excerpt}
                           </p>
                         </div>
                       </div>

@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Clock, Eye } from 'lucide-react';
 import CategoryTag from './CategoryTag';
+import ArticleImage from './ArticleImage';
 import BookmarkButton from './BookmarkButton';
 import { Headline, Meta, Subline } from './ArticleText';
 import { useLanguage } from '../../context/language';
@@ -11,9 +13,10 @@ import { cn } from '../../utils/cn';
  *
  * variant:
  *  - "grid"    vertical card (home pairs, related stories)
- *  - "row"     horizontal card with emoji thumbnail (lists, search results)
- *  - "hero"    large dark banner (top story); `label` sets the badge text,
- *              `size` = "lg" | "md"
+ *  - "row"     horizontal card with photo/emoji thumbnail (lists, search results)
+ *  - "hero"    large banner (top story): the story's photo with a dark overlay,
+ *              or the themed surface when there is no photo. `label` sets the
+ *              badge text, `size` = "lg" | "md"
  *  - "compact" small sidebar item; pass `rank` for a numbered list
  *
  * `badge` (row): extra element next to the category tag, e.g. "Top result".
@@ -23,8 +26,12 @@ export default function ArticleCard({
   article, variant = 'row', label, size = 'md', rank, badge, showStats = false, className,
 }) {
   const { t } = useLanguage();
+  const [photoFailed, setPhotoFailed] = useState(false);
 
   if (variant === 'hero') {
+    // With a photo the card is always dark (white text over the image), in
+    // both themes; without one it uses the themed hero surface.
+    const photo = Boolean(article.imageUrl) && !photoFailed;
     return (
       <article
         className={cn(
@@ -36,30 +43,46 @@ export default function ArticleCard({
           className
         )}
       >
-        <span
-          aria-hidden
-          className={cn(
-            'absolute end-6 top-5 -z-10 opacity-25 select-none dark:opacity-15',
-            size === 'lg' ? 'text-[110px]' : 'text-7xl'
-          )}
-        >
-          {categoryEmoji(article.category)}
-        </span>
-        <div aria-hidden className="hero-overlay absolute inset-0 -z-10" />
+        {photo ? (
+          <>
+            <img
+              src={article.imageUrl}
+              alt=""
+              referrerPolicy="no-referrer"
+              onError={() => setPhotoFailed(true)}
+              className="absolute inset-0 -z-20 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+            />
+            <div aria-hidden className="absolute inset-0 -z-10 bg-linear-to-t from-black/90 via-black/45 to-black/5" />
+          </>
+        ) : (
+          <>
+            <span
+              aria-hidden
+              className={cn(
+                'absolute end-6 top-5 -z-10 opacity-25 select-none dark:opacity-15',
+                size === 'lg' ? 'text-[110px]' : 'text-7xl'
+              )}
+            >
+              {categoryEmoji(article.category)}
+            </span>
+            <div aria-hidden className="hero-overlay absolute inset-0 -z-10" />
+          </>
+        )}
         <div className={size === 'lg' ? 'p-6' : 'p-5'}>
           <div className="mb-2.5 flex flex-wrap items-center gap-2.5">
             {label && <span className="badge bg-primary text-on-primary">{label}</span>}
-            <Meta article={article} className="text-xs text-hero-meta" />
+            <Meta article={article} className={cn('text-xs', photo ? 'text-white/75' : 'text-hero-meta')} />
           </div>
           <Headline
             article={article}
             as="h2"
             className={cn(
-              'mb-2 font-bold leading-snug text-hero-title transition-colors group-hover:text-hero-hover',
+              'mb-2 font-bold leading-snug transition-colors',
+              photo ? 'text-white group-hover:text-primary' : 'text-hero-title group-hover:text-hero-hover',
               size === 'lg' ? 'text-[22px] sm:text-2xl' : 'text-lg'
             )}
           />
-          <Subline article={article} className="text-[13px] text-hero-sub" />
+          <Subline article={article} className={cn('text-[13px]', photo ? 'text-white/80' : 'text-hero-sub')} />
         </div>
       </article>
     );
@@ -76,9 +99,12 @@ export default function ArticleCard({
         <Subline article={article} className="text-xs" />
         <div className="mt-auto flex items-center justify-between gap-2">
           <Meta article={article} />
-          <span className="flex items-center gap-1 text-[11px] text-muted">
-            <Eye size={11} /> {formatCount(article.views)}
-          </span>
+          {/* read counts start at 0 for new stories — show them once there are some */}
+          {article.views > 0 && (
+            <span className="flex items-center gap-1 text-[11px] text-muted">
+              <Eye size={11} /> {formatCount(article.views)}
+            </span>
+          )}
         </div>
       </article>
     );
@@ -90,9 +116,7 @@ export default function ArticleCard({
         {rank ? (
           <span className="min-w-[22px] text-lg font-bold leading-tight text-primary">{rank}</span>
         ) : (
-          <div aria-hidden className="flex h-10 w-[46px] shrink-0 items-center justify-center rounded-lg bg-soft text-lg">
-            {categoryEmoji(article.category)}
-          </div>
+          <ArticleImage article={article} className="h-10 w-[46px] shrink-0 rounded-lg" emojiClassName="text-lg" />
         )}
         <div className="min-w-0">
           <Headline
@@ -102,7 +126,7 @@ export default function ArticleCard({
           />
           <span className="text-[11px] text-muted">
             <Meta article={article} />
-            {rank && ` · ${t('reads', { n: formatCount(article.views) })}`}
+            {rank && article.views > 0 && ` · ${t('reads', { n: formatCount(article.views) })}`}
           </span>
         </div>
       </article>
@@ -112,9 +136,7 @@ export default function ArticleCard({
   // row (default)
   return (
     <article className={cn('card card-link relative flex items-start gap-3.5 rounded-xl px-4 py-3.5', className)}>
-      <div aria-hidden className="flex h-[58px] w-[72px] shrink-0 items-center justify-center rounded-lg bg-soft text-[22px]">
-        {categoryEmoji(article.category)}
-      </div>
+      <ArticleImage article={article} className="h-[58px] w-[72px] shrink-0 rounded-lg" emojiClassName="text-[22px]" />
       <div className="min-w-0 flex-1">
         <div className="mb-1.5 flex flex-wrap items-center gap-2">
           <CategoryTag categoryId={article.category} />
@@ -125,8 +147,12 @@ export default function ArticleCard({
         <Subline article={article} className="text-[11px]" />
         {showStats && (
           <div className="mt-1 flex items-center gap-3 text-[11px] text-muted">
-            <span className="flex items-center gap-1"><Eye size={11} /> {formatCount(article.views)}</span>
-            <span className="flex items-center gap-1"><Clock size={11} /> {t('minRead', { n: article.readMinutes })}</span>
+            {article.views > 0 && (
+              <span className="flex items-center gap-1"><Eye size={11} /> {formatCount(article.views)}</span>
+            )}
+            {article.readMinutes && (
+              <span className="flex items-center gap-1"><Clock size={11} /> {t('minRead', { n: article.readMinutes })}</span>
+            )}
           </div>
         )}
       </div>
