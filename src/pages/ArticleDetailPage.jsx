@@ -10,7 +10,7 @@ import NewsletterForm from '../components/common/NewsletterForm';
 import { Skeleton, CardSkeleton } from '../components/common/Skeleton';
 import { ErrorState, QueryBoundary } from '../components/common/States';
 import NotFoundPage from './NotFoundPage';
-import { useArticle, useArticles } from '../hooks/useNews';
+import { useArticle, useArticleCounts, useArticles } from '../hooks/useNews';
 import { recordView } from '../api/news';
 import { useLanguage } from '../context/language';
 import { getCategory } from '../data/categories';
@@ -101,6 +101,7 @@ function ArticleView({ article }) {
 
   const related = useArticles({ category: article.category, exclude: article.id, limit: 3 });
   const moreFromSource = useArticles({ source: article.source, exclude: article.id, limit: 3 });
+  const sourceCounts = useArticleCounts('source'); // real story counts per source
 
   // Demo articles have a full body. Real (RSS) articles only have a short
   // summary — we never copy full stories — and link to the original.
@@ -174,10 +175,12 @@ function ArticleView({ article }) {
             <ShareButtons article={article} />
           </div>
 
+          {/* Whole photo, never cropped (16:9 frame, blurred fill for other shapes) */}
           <ArticleImage
             article={article}
             alt={title(article)}
-            className="mb-6 h-60 w-full rounded-2xl border border-line sm:h-80"
+            mode="full"
+            className="mb-6 aspect-video max-h-[420px] w-full rounded-2xl border border-line"
             emojiClassName="text-6xl"
           />
 
@@ -256,7 +259,9 @@ function ArticleView({ article }) {
                 <SourceLogo source={source} />
                 <div>
                   <p className="text-[13px] font-bold text-ink">{source.name}</p>
-                  <p className="text-[11px] text-muted">{t('articlesCount', { n: source.articles.toLocaleString() })}</p>
+                  {sourceCounts.data?.[source.id] > 0 && (
+                    <p className="text-[11px] text-muted">{t('storiesCount', { n: sourceCounts.data[source.id].toLocaleString() })}</p>
+                  )}
                 </div>
               </div>
               <Link to={`/source/${source.id}`} className="btn-ghost w-full bg-soft font-semibold">

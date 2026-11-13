@@ -1,8 +1,12 @@
 # PakNewsHub
 
-International news for Pakistani readers, in **English and Urdu**. Real
-stories are fetched from the RSS feeds of BBC, The Guardian, Dawn and DW every
-15 minutes, and Claude translates each headline and summary into Urdu.
+The latest news from Pakistan and around the world. Stories are fetched every
+15 minutes from **32 sources** (7 Pakistani, 25 international) across more than
+60 RSS feeds, and organised into Pakistan, World, Business, Technology, Sports,
+Health, Science and Entertainment.
+
+The English edition comes first. An Urdu edition, using Urdu-language sources,
+is planned for later.
 
 **Stack:** React 19 · Vite · Tailwind CSS 4 · React Router 7 · TanStack Query ·
 Zustand. The backend is Express 5 · MongoDB (Mongoose).
@@ -79,6 +83,17 @@ How ingestion works (`server/src/ingest/`):
 > We store only the headline, a short summary, the image link and the source
 > link, never the full article. The article page links to the original
 > ("Read on BBC World").
+
+### Adding a news source
+
+1. Add the source to `src/data/sources.js` (id, name, logo letters, country, homepage, region, colours).
+2. Add its feed URLs to `server/src/ingest/feeds.js`, with a fixed `category`, or
+   `category: 'auto'` plus a `fallback` for mixed "latest" feeds. Specific
+   feeds go before general ones: when a story is in two feeds, the first wins.
+3. Run `npm run seed:real-only` (refreshes the source list) and `npm run ingest`.
+
+Before adding a feed, check that it is still updated. Several big publishers'
+feeds are years out of date.
 
 ### Urdu translation (opt-in, paid)
 

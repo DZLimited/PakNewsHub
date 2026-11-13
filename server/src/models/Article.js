@@ -27,6 +27,8 @@ const articleSchema = new mongoose.Schema(
     id:          { type: String, required: true, unique: true, trim: true },
     // 'demo' = bundled sample data (npm run seed), 'rss' = fetched by the ingester
     origin:      { type: String, enum: ['demo', 'rss'], default: 'demo' },
+    // Edition: 'en' now; an Urdu edition (Urdu-language sources) comes later
+    language:    { type: String, enum: ['en', 'ur'], default: 'en' },
     url:         { type: String },                     // original story URL (rss: unique key)
     title:       { type: String, required: true, trim: true },
     urduTitle:   { type: String, trim: true },         // rss: filled in later by the translator

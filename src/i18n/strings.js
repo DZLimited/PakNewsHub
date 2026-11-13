@@ -1,7 +1,7 @@
 // UI strings in English and Urdu. Use `{name}` placeholders for variables.
 export const strings = {
   en: {
-    brandTagline: "Pakistan's premier international news platform — bilingual English & Urdu coverage from 50+ global sources.",
+    brandTagline: "The latest news from Pakistan and around the world, from {n} trusted sources, updated all day.",
     breaking: 'Breaking',
     topStory: 'Top Story',
     latest: 'Latest',
@@ -41,7 +41,8 @@ export const strings = {
     backHome: 'Back to home',
     categoryNews: '{category} News',
     storiesCount: '{n} stories',
-    fromSources: 'From 50+ global sources — updated every 15 minutes',
+    storiesCount_one: '{n} story',
+    fromSources: 'From {n} sources in Pakistan and worldwide — updated every 15 minutes',
     sort: 'Sort',
     sort_latest: 'Latest first',
     sort_views: 'Most read',
@@ -79,6 +80,7 @@ export const strings = {
     newsSource: 'International news source',
     stat_articles: 'Articles',
     stat_onSite: 'On PakNewsHub',
+    stat_today: 'Last 24 hours',
     stat_categories: 'Categories',
     stat_reads: 'Total reads',
     followSource: 'Follow source',
@@ -94,6 +96,7 @@ export const strings = {
     clearAll: 'Clear all',
     categories: 'Categories',
     sources: 'Sources',
+    moreSources: '+ {n} more sources',
     rights: '© {year} PakNewsHub. All rights reserved.',
     privacy: 'Privacy Policy',
     terms: 'Terms of Use',
@@ -117,7 +120,7 @@ export const strings = {
   },
 
   ur: {
-    brandTagline: 'پاکستان کا پہلا بین الاقوامی خبروں کا پلیٹ فارم — 50 سے زائد عالمی ذرائع سے انگریزی اور اردو میں خبریں۔',
+    brandTagline: 'پاکستان اور دنیا بھر کی تازہ ترین خبریں، {n} معتبر ذرائع سے، دن بھر اپ ڈیٹ۔',
     breaking: 'بریکنگ',
     topStory: 'اہم خبر',
     latest: 'تازہ',
@@ -156,7 +159,7 @@ export const strings = {
     backHome: 'صفحۂ اول پر واپس جائیں',
     categoryNews: '{category} کی خبریں',
     storiesCount: '{n} خبریں',
-    fromSources: '50 سے زائد عالمی ذرائع سے — ہر 15 منٹ بعد اپ ڈیٹ',
+    fromSources: 'پاکستان اور دنیا بھر کے {n} ذرائع سے — ہر 15 منٹ بعد اپ ڈیٹ',
     sort: 'ترتیب',
     sort_latest: 'تازہ ترین پہلے',
     sort_views: 'سب سے زیادہ پڑھی گئی',
@@ -194,6 +197,7 @@ export const strings = {
     newsSource: 'بین الاقوامی خبر رساں ادارہ',
     stat_articles: 'مضامین',
     stat_onSite: 'پاک نیوز ہب پر',
+    stat_today: 'گزشتہ 24 گھنٹے',
     stat_categories: 'زمرے',
     stat_reads: 'کل قارئین',
     followSource: 'فالو کریں',
@@ -209,6 +213,7 @@ export const strings = {
     clearAll: 'سب ہٹائیں',
     categories: 'زمرے',
     sources: 'ذرائع',
+    moreSources: '+ مزید {n} ذرائع',
     rights: '© {year} پاک نیوز ہب۔ جملہ حقوق محفوظ ہیں۔',
     privacy: 'رازداری کی پالیسی',
     terms: 'شرائط استعمال',

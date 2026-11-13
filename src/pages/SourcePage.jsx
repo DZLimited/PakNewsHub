@@ -29,6 +29,8 @@ export default function SourcePage() {
     { enabled: Boolean(source) }
   );
   const counts = useArticleCounts('category', { source: id }); // unfiltered, for tabs + breakdown
+  const today = useArticleCounts('category', { source: id, range: '24h' });
+  const perSource = useArticleCounts('source'); // to rank the other sources
 
   if (!source) return <NotFoundPage />;
 
@@ -39,12 +41,18 @@ export default function SourcePage() {
     .sort((a, b) => b.count - a.count)
     .map(c => ({ ...c, pct: Math.round((c.count / Math.max(totalHere, 1)) * 100) }));
 
-  const otherSources = sources.filter(s => s.id !== source.id).slice(0, 4);
+  const sum = data => Object.values(data ?? {}).reduce((total, n) => total + n, 0);
+  // Most active other sources first
+  const otherSources = sources
+    .filter(s => s.id !== source.id)
+    .map(s => ({ ...s, count: perSource.data?.[s.id] ?? 0 }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 4);
   const pickCategory = c => { setCategory(c); setLimit(PAGE_SIZE); };
 
   const stats = [
-    { value: source.articles.toLocaleString(), label: t('stat_articles') },
-    { value: totalHere, label: t('stat_onSite') },
+    { value: totalHere.toLocaleString(), label: t('stat_onSite') },
+    { value: sum(today.data).toLocaleString(), label: t('stat_today') },
     { value: breakdown.length, label: t('stat_categories') },
   ];
 
@@ -170,7 +178,9 @@ export default function SourcePage() {
                     <SourceLogo source={src} size="sm" />
                     <div>
                       <p className="text-[13px] font-medium text-ink">{src.name}</p>
-                      <p className="text-[11px] text-muted">{t('articlesCount', { n: src.articles.toLocaleString() })}</p>
+                      {src.count > 0 && (
+                        <p className="text-[11px] text-muted">{t('storiesCount', { n: src.count.toLocaleString() })}</p>
+                      )}
                     </div>
                   </Link>
                 ))}

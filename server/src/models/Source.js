@@ -8,7 +8,7 @@ const sourceSchema = new mongoose.Schema(
     short:     { type: String, required: true },
     country:   { type: String, default: '' },
     url:       { type: String, required: true },
-    articles:  { type: Number, default: 0 },
+    region:    { type: String, enum: ['pk', 'intl'], default: 'intl' },
     color:     { type: String, default: '#E6F1FB' },
     textColor: { type: String, default: '#0C447C' },
   },

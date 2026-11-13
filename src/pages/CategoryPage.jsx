@@ -60,7 +60,7 @@ export default function CategoryPage() {
               </span>
             )}
           </div>
-          <p className="ps-3.5 text-[13px] text-muted">{t('fromSources')}</p>
+          <p className="ps-3.5 text-[13px] text-muted">{t('fromSources', { n: sources.length })}</p>
         </div>
         <label className="flex items-center gap-2 text-[13px] text-muted">
           {t('sort')}:

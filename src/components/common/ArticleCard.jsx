@@ -14,9 +14,9 @@ import { cn } from '../../utils/cn';
  * variant:
  *  - "grid"    vertical card (home pairs, related stories)
  *  - "row"     horizontal card with photo/emoji thumbnail (lists, search results)
- *  - "hero"    large banner (top story): the story's photo with a dark overlay,
- *              or the themed surface when there is no photo. `label` sets the
- *              badge text, `size` = "lg" | "md"
+ *  - "hero"    top story: the WHOLE photo beside the headline + summary
+ *              (stacked on phones), or the themed surface when there is no photo.
+ *              `label` sets the badge text, `size` = "lg" | "md"
  *  - "compact" small sidebar item; pass `rank` for a numbered list
  *
  * `badge` (row): extra element next to the category tag, e.g. "Top result".
@@ -25,13 +25,59 @@ import { cn } from '../../utils/cn';
 export default function ArticleCard({
   article, variant = 'row', label, size = 'md', rank, badge, showStats = false, className,
 }) {
-  const { t } = useLanguage();
+  const { t, isUrdu } = useLanguage();
   const [photoFailed, setPhotoFailed] = useState(false);
 
+  if (variant === 'hero' && article.imageUrl && !photoFailed) {
+    // Top story WITH a photo. Desktop: photo LEFT, headline + summary RIGHT,
+    // so the whole card fits on screen (~270px tall) and the headline is
+    // readable without scrolling. Phone: photo on top, text below.
+    // The photo is never cropped (mode="full": blurred fill for other shapes).
+    const summaryIsUrdu = isUrdu && Boolean(article.urduSummary);
+    const summary = summaryIsUrdu ? article.urduSummary : article.excerpt;
+    return (
+      <article
+        className={cn(
+          'card card-link group relative grid overflow-hidden rounded-2xl md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]',
+          className
+        )}
+      >
+        <ArticleImage
+          article={article}
+          mode="full"
+          // phone: 16:9 box; desktop: fills the row height next to the text
+          className="aspect-video w-full md:aspect-auto md:h-full md:min-h-[270px]"
+          onFail={() => setPhotoFailed(true)}
+        />
+        <div className={cn('flex flex-col justify-center gap-2.5', size === 'lg' ? 'p-5 sm:p-6' : 'p-4 sm:p-5')}>
+          <div className="flex flex-wrap items-center gap-2">
+            {label && <span className="badge bg-primary text-on-primary">{label}</span>}
+            <CategoryTag categoryId={article.category} />
+          </div>
+          <Headline
+            article={article}
+            as="h2"
+            className={cn(
+              'line-clamp-4 font-bold leading-snug text-ink transition-colors group-hover:text-primary',
+              size === 'lg' ? 'text-xl sm:text-[22px]' : 'text-lg sm:text-xl'
+            )}
+          />
+          {summary && (
+            <p
+              dir={summaryIsUrdu ? 'rtl' : 'auto'}
+              className={cn('line-clamp-3 text-[13px] leading-relaxed text-muted', summaryIsUrdu && 'urdu')}
+            >
+              {summary}
+            </p>
+          )}
+          <Meta article={article} className="text-xs" />
+        </div>
+      </article>
+    );
+  }
+
   if (variant === 'hero') {
-    // With a photo the card is always dark (white text over the image), in
-    // both themes; without one it uses the themed hero surface.
-    const photo = Boolean(article.imageUrl) && !photoFailed;
+    // Top story WITHOUT a photo: themed surface with a large category emoji.
     return (
       <article
         className={cn(
@@ -43,46 +89,30 @@ export default function ArticleCard({
           className
         )}
       >
-        {photo ? (
-          <>
-            <img
-              src={article.imageUrl}
-              alt=""
-              referrerPolicy="no-referrer"
-              onError={() => setPhotoFailed(true)}
-              className="absolute inset-0 -z-20 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-            />
-            <div aria-hidden className="absolute inset-0 -z-10 bg-linear-to-t from-black/90 via-black/45 to-black/5" />
-          </>
-        ) : (
-          <>
-            <span
-              aria-hidden
-              className={cn(
-                'absolute end-6 top-5 -z-10 opacity-25 select-none dark:opacity-15',
-                size === 'lg' ? 'text-[110px]' : 'text-7xl'
-              )}
-            >
-              {categoryEmoji(article.category)}
-            </span>
-            <div aria-hidden className="hero-overlay absolute inset-0 -z-10" />
-          </>
-        )}
+        <span
+          aria-hidden
+          className={cn(
+            'absolute end-6 top-5 -z-10 opacity-25 select-none dark:opacity-15',
+            size === 'lg' ? 'text-[110px]' : 'text-7xl'
+          )}
+        >
+          {categoryEmoji(article.category)}
+        </span>
+        <div aria-hidden className="hero-overlay absolute inset-0 -z-10" />
         <div className={size === 'lg' ? 'p-6' : 'p-5'}>
           <div className="mb-2.5 flex flex-wrap items-center gap-2.5">
             {label && <span className="badge bg-primary text-on-primary">{label}</span>}
-            <Meta article={article} className={cn('text-xs', photo ? 'text-white/75' : 'text-hero-meta')} />
+            <Meta article={article} className="text-xs text-hero-meta" />
           </div>
           <Headline
             article={article}
             as="h2"
             className={cn(
-              'mb-2 font-bold leading-snug transition-colors',
-              photo ? 'text-white group-hover:text-primary' : 'text-hero-title group-hover:text-hero-hover',
+              'mb-2 font-bold leading-snug text-hero-title transition-colors group-hover:text-hero-hover',
               size === 'lg' ? 'text-[22px] sm:text-2xl' : 'text-lg'
             )}
           />
-          <Subline article={article} className={cn('text-[13px]', photo ? 'text-white/80' : 'text-hero-sub')} />
+          <Subline article={article} className="text-[13px] text-hero-sub" />
         </div>
       </article>
     );
@@ -116,7 +146,7 @@ export default function ArticleCard({
         {rank ? (
           <span className="min-w-[22px] text-lg font-bold leading-tight text-primary">{rank}</span>
         ) : (
-          <ArticleImage article={article} className="h-10 w-[46px] shrink-0 rounded-lg" emojiClassName="text-lg" />
+          <ArticleImage article={article} className="aspect-video w-[72px] shrink-0 rounded-lg" emojiClassName="text-lg" />
         )}
         <div className="min-w-0">
           <Headline
@@ -136,7 +166,7 @@ export default function ArticleCard({
   // row (default)
   return (
     <article className={cn('card card-link relative flex items-start gap-3.5 rounded-xl px-4 py-3.5', className)}>
-      <ArticleImage article={article} className="h-[58px] w-[72px] shrink-0 rounded-lg" emojiClassName="text-[22px]" />
+      <ArticleImage article={article} className="aspect-video w-[104px] shrink-0 rounded-lg" emojiClassName="text-[22px]" />
       <div className="min-w-0 flex-1">
         <div className="mb-1.5 flex flex-wrap items-center gap-2">
           <CategoryTag categoryId={article.category} />

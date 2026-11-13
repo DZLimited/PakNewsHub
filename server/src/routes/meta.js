@@ -6,7 +6,7 @@ export const metaRouter = Router();
 
 /** GET /api/sources → Source[] */
 metaRouter.get('/sources', async (_req, res) => {
-  res.json(await Source.find().sort({ articles: -1 }));
+  res.json(await Source.find().sort({ _id: 1 })); // seed order: Pakistani first
 });
 
 /** GET /api/categories → Category[] (in seed order) */
