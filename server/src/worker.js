@@ -1,7 +1,8 @@
 // Background worker:  npm run worker
 //
 // Two jobs, each on its own timer:
-//   • ingest     — fetch the RSS feeds every INGEST_INTERVAL_MINUTES (15)
+//   • ingest     — fetch the RSS feeds every INGEST_INTERVAL_MINUTES (15),
+//                  then find photos for new stories whose feed had none
 //   • translate  — translate queued stories to Urdu every minute
 //                  (only when URDU_TRANSLATION=on — it costs money)
 //
@@ -11,6 +12,7 @@
 import { config } from './config.js';
 import { connectDB, disconnectDB } from './db.js';
 import { formatStats, ingestAll } from './ingest/ingest.js';
+import { findPhotos, formatPhotoStats } from './ingest/photos.js';
 import { createClient, formatTranslateStats, translateBatch } from './translate/translate.js';
 
 const TRANSLATE_EVERY_MS = 60_000;
@@ -46,6 +48,9 @@ const timers = [];
 console.log(`Worker started — fetching feeds every ${config.ingestIntervalMinutes} min`);
 timers.push(every(config.ingestIntervalMinutes * 60_000, 'ingest', async () => {
   console.log(`[ingest ${stamp()}] ${formatStats(await ingestAll())}`);
+  // Same timer, so the next feed run waits until this has finished
+  const photos = await findPhotos();
+  if (photos.checked) console.log(`[ingest ${stamp()}] ${formatPhotoStats(photos)}`);
 }));
 
 if (config.urduTranslation) {

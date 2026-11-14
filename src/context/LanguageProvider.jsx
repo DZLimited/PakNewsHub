@@ -21,17 +21,29 @@ export function LanguageProvider({ children }) {
 
   const value = useMemo(() => {
     const isUrdu = lang === 'ur';
-    // Real (RSS) articles get their Urdu title from the translator a little
-    // after they arrive — until then, fall back to English everywhere.
+    // Urdu-edition stories (Urdu sources) are written in Urdu: title and
+    // excerpt are already Urdu, and there is no English version.
+    const isNativeUrdu = a => a?.language === 'ur';
+    // English stories may carry an Urdu translation (demo stories; RSS ones
+    // only if the optional translator is on). Otherwise: English everywhere.
     const hasUrdu = a => Boolean(a?.urduTitle);
     return {
       lang,
       isUrdu,
       toggleLanguage,
       t: (key, vars) => translate(lang, key, vars),
-      title: a => (isUrdu && hasUrdu(a) ? a.urduTitle : a.title),
-      altTitle: a => (isUrdu ? (hasUrdu(a) ? a.title : null) : (a.urduTitle ?? null)),
-      showsUrdu: a => isUrdu && hasUrdu(a),
+      title: a => (!isNativeUrdu(a) && isUrdu && hasUrdu(a) ? a.urduTitle : a.title),
+      altTitle: a => {
+        if (isNativeUrdu(a)) return null;
+        return isUrdu ? (hasUrdu(a) ? a.title : null) : (a.urduTitle ?? null);
+      },
+      showsUrdu: a => isNativeUrdu(a) || (isUrdu && hasUrdu(a)),
+      // Short summary in the best language → { text, urdu }
+      summary: a => {
+        if (isNativeUrdu(a)) return { text: a.excerpt, urdu: true };
+        if (isUrdu && a.urduSummary) return { text: a.urduSummary, urdu: true };
+        return { text: a.excerpt, urdu: false };
+      },
       categoryLabel: c => (c ? (isUrdu ? c.urdu : c.label) : ''),
       ago: iso => timeAgo(iso, lang),
     };

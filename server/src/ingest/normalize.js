@@ -70,8 +70,26 @@ const SUMMARY_JUNK = [
   /\s*(Read more|Read More|\(more…\))\.{0,3}$/,
 ];
 
+// Jang (Urdu) starts most summaries with the photo caption glued to the first
+// sentence: "—فائل فوٹوکراچی میں…", "رؤف صدیقی— فائل فوٹومتحدہ…",
+// "فوٹو: فائلوزیر داخلہ…", "— تصویر بشکریہ غیر ملکی میڈیابھارت…".
+// We cut up to and including the photo credit (only near the start).
+const PHOTO_CREDIT = new RegExp(
+  '^[\\s\\S]{0,80}?(?:' + [
+    'فائل فوٹوز?',
+    'فوٹو\\s*:\\s*(?:فائل|ایکس|سوشل میڈیا)',
+    'اسکرین گریب',
+    'تصویر سوشل میڈیا',
+    '(?:تصویر|فوٹو) بشکریہ (?:غیر ملکی میڈیا|غیر ملکلی میڈیا|سوشل میڈیا|کرک انفو|انسٹاگرام|رپورٹر|ایکس|فیس بک|اے ایف پی|رائٹرز)',
+  ].join('|') + ')[\\s۔.:\\-—–]*'
+);
+// A credit we don't know ("— تصویر بشکریہ <anyone>…") can't be cut cleanly:
+// no summary is better than one that starts mid-caption.
+const UNKNOWN_CREDIT = /^[\s\-—–]*(تصویر|فوٹو) بشکریہ/;
+
 export function cleanSummary(text, title = '') {
-  let out = text;
+  let out = text.replace(PHOTO_CREDIT, '');
+  if (UNKNOWN_CREDIT.test(out)) return '';
   for (const re of SUMMARY_JUNK) out = out.replace(re, '');
   out = out.trim();
   return out.toLowerCase() === title.toLowerCase() ? '' : out; // some feeds repeat the title
@@ -85,7 +103,8 @@ export function cleanSummary(text, title = '') {
 export function toExcerpt(text, max = EXCERPT_MAX) {
   if (text.length <= max) return text;
   let out = '';
-  for (const sentence of text.split(/(?<=[.!?])\s+/)) {
+  // Urdu ends sentences with ۔ and ؟
+  for (const sentence of text.split(/(?<=[.!?۔؟])\s+/)) {
     if ((out + ' ' + sentence).trim().length > max) break;
     out = (out + ' ' + sentence).trim();
   }
@@ -124,7 +143,8 @@ export function fixImageUrl(url) {
   return url
     // BBC serves the same picture at other widths; the feed only links 240px,
     // which is blurry in large cards. (800 → 200 OK.)
-    .replace(/(ichef\.bbci\.co\.uk\/ace\/standard\/)\d+\//, '$1800/')
+    // BBC Urdu uses /ace/ws/240/ — same fix.
+    .replace(/(ichef\.bbci\.co\.uk\/ace\/(?:standard|ws)\/)\d+\//, '$1800/')
     // Geo's feed drops "/updates/" from image paths; the URLs it gives
     // redirect to the homepage. The article pages' og:image has the real path.
     .replace(/^(https:\/\/www\.geo\.tv\/assets\/uploads\/)(\d{4}-\d{2}-\d{2}\/)/, '$1updates/$2')
@@ -157,28 +177,37 @@ export const itemLabels = item =>
   asArray(item.categories).map(c => stripHtml(typeof c === 'string' ? c : c?._)).filter(Boolean);
 
 // Not news: opinion pieces, sponsored content, photo/video-only posts.
-const SKIP_LABELS = /^(opinions?|editorials?|op-?eds?|columns?|columnists?|blogs?|letters?|sponsored|corporate and sponsored content|advertorials?|partner content|photos?|national photos|photo feature|photo gallery|general coverage photos|videos?|podcasts?|in pictures)$/i;
+// Urdu: بلاگ (blog), کالم (column), اداریہ (editorial), رائے (opinion),
+// ویڈیو (video), تصاویر (photos).
+const SKIP_LABELS = /^(opinions?|editorials?|op-?eds?|columns?|columnists?|blogs?|letters?|sponsored|corporate and sponsored content|advertorials?|partner content|photos?|national photos|photo feature|photo gallery|general coverage photos|videos?|podcasts?|in pictures|بلاگز?|کالمز?|اداریہ|رائے|ویڈیوز?|تصاویر)$/i;
 // Also readers' letters pages ("… | Letters", The Guardian).
-const SKIP_TITLES = /(^(watch|video|listen|in pictures)\s*:)|(\s[–-]\s(video|in pictures|podcast|photo essay)$)|(\|\s*letters?$)/i;
+const SKIP_TITLES = /(^(watch|video|listen|in pictures|ویڈیو)\s*:)|(\s[–-]\s(video|in pictures|podcast|photo essay)$)|(\|\s*letters?$)/i;
 
 // For category: 'auto' feeds. Checked in this order, so a story labelled
 // "Pakistan" + "Sports" lands in Sports; Pakistan/World are the catch-alls.
+// Each rule also lists the Urdu labels used by Express and ARY Urdu.
 const CATEGORY_RULES = [
-  ['sports',        /^(sports?|cricket|football|soccer|tennis|hockey|olympics|f1|formula 1|athletics)$/i],
-  ['business',      /^(business|markets?|economy|finance|money|stocks?|companies|banking|energy)$/i],
-  ['technology',    /^(tech|technology|science and technology|sci-tech|ai|gadgets|hardware|internet)$/i],
-  ['health',        /^(health|healthcare|medicine)$/i],
-  ['science',       /^(science|space|environment|climate|climate change)$/i],
-  ['entertainment', /^(entertainment|showbiz|culture|life & style|lifestyle|arts?|movies|film|music|tv|television)$/i],
-  ['world',         /^(world|international|middle east|mena|asia|americas|europe|africa|gulf|saudi arabia|uae)$/i],
-  ['pakistan',      /^(pakistan|national|domestic)$/i],
+  ['sports',        /^(sports?|cricket|football|soccer|tennis|hockey|olympics|f1|formula 1|athletics|کھیل|کرکٹ|فٹبال|اسپورٹس|سپورٹس)$/i],
+  ['business',      /^(business|markets?|economy|finance|money|stocks?|companies|banking|energy|بزنس|کاروبار|کاروباری خبریں|معیشت|تجارت)$/i],
+  ['technology',    /^(tech|technology|science and technology|sci-tech|ai|gadgets|hardware|internet|ٹیکنالوجی|سائنس\/ٹیکنالوجی|سائنس و ٹیکنالوجی|سائنس اور ٹیکنالوجی)$/i],
+  ['health',        /^(health|healthcare|medicine|صحت)$/i],
+  ['science',       /^(science|space|environment|climate|climate change|سائنس|ماحولیات)$/i],
+  ['entertainment', /^(entertainment|showbiz|culture|life & style|lifestyle|arts?|movies|film|music|tv|television|انٹرٹینمنٹ|شوبز|تفریح|فن و ثقافت)$/i],
+  ['world',         /^(world|international|middle east|mena|asia|americas|europe|africa|gulf|saudi arabia|uae|انٹر نیشنل|انٹرنیشنل|عالمی خبریں|عالمی|دنیا|بین الاقوامی)$/i],
+  ['pakistan',      /^(pakistan|national|domestic|پاکستان|قومی)$/i],
 ];
 
-export function resolveCategory(feed, labels) {
+/**
+ * fallback: 'detect' is for feeds with no labels at all (BBC Urdu,
+ * Independent Urdu): Pakistan if the HEADLINE is about Pakistan, else World.
+ * (Only the headline — summaries often mention Pakistan in passing.)
+ */
+export function resolveCategory(feed, labels, title = '') {
   if (feed.category !== 'auto') return feed.category;
   for (const [category, re] of CATEGORY_RULES) {
     if (labels.some(label => re.test(label))) return category;
   }
+  if (feed.fallback === 'detect') return mentionsPakistan(title) ? 'pakistan' : 'world';
   return feed.fallback ?? 'world';
 }
 
@@ -199,19 +228,38 @@ const PAKISTAN_TERMS = [
 ];
 export const PAKISTAN = new RegExp(`\\b(${PAKISTAN_TERMS.join('|')})\\b`, 'i');
 
+// The same idea for Urdu text. No \b here: JavaScript's \b only knows Latin
+// letters. Left out as ambiguous: پنجاب (also India), وزیراعظم (any country).
+const PAKISTAN_TERMS_UR = [
+  'پاکستان', 'اسلام آباد', 'کراچی', 'لاہور', 'پشاور', 'کوئٹہ', 'راولپنڈی', 'فیصل آباد', 'ملتان',
+  'سیالکوٹ', 'گوجرانوالہ', 'بہاولپور', 'ایبٹ آباد', 'گوادر', 'بلوچستان', 'سندھ', 'خیبر پختونخوا',
+  'خیبرپختونخوا', 'وزیرستان', 'گلگت', 'آزاد کشمیر', 'آئی ایس پی آر', 'مسلم لیگ', 'تحریک انصاف',
+  'پی ٹی آئی', 'عمران خان', 'شہباز', 'نواز شریف', 'مریم نواز', 'بلاول', 'زرداری', 'عاصم منیر',
+  'اسٹیٹ بینک', 'نادرا', 'واپڈا', 'نیپرا',
+];
+export const PAKISTAN_UR = new RegExp(PAKISTAN_TERMS_UR.join('|'));
+// Some sites type the Arabic letters ي / ك instead of Urdu ی / ک — same word.
+const urduLetters = s => s.replace(/ي/g, 'ی').replace(/ك/g, 'ک');
+export const mentionsPakistan = text => PAKISTAN.test(text) || PAKISTAN_UR.test(urduLetters(text));
+
+export const URDU_SCRIPT = /[؀-ۿ]/;
+// Urdu labels that only name a section or say "must read" / "top trend".
+const GENERIC_TAGS_UR = /^(پاکستان|انٹر نیشنل|انٹرنیشنل|عالمی خبریں|عالمی|کھیل|بزنس|کاروباری خبریں|انٹرٹینمنٹ|شوبز|صحت|سائنس|ٹیکنالوجی|سائنس\/ٹیکنالوجی|ضرور پڑھیں|ٹاپ ٹرینڈ|خاص خبریں|اہم خبریں|تازہ ترین)$/;
+
 export function extractTags(labels, feed, text, category) {
   const raw = [
     ...(feed.tags ?? []),
-    ...labels,
+    // ARY Urdu mixes English SEO keywords ("LPG price") into its Urdu labels
+    ...(feed.language === 'ur' ? labels.filter(l => URDU_SCRIPT.test(l)) : labels),
     // powers "Pakistan Focus": the Pakistan category, or any story that mentions Pakistan
-    ...(category === 'pakistan' || PAKISTAN.test(text) ? ['Pakistan'] : []),
+    ...(category === 'pakistan' || mentionsPakistan(text) ? ['Pakistan'] : []),
   ];
   const seen = new Set();
   const tags = [];
   for (const t of raw) {
     const tag = stripHtml(t ?? '');
     const key = tag.toLowerCase();
-    if (!tag || tag.length > 40 || GENERIC_TAGS.test(tag) || seen.has(key)) continue;
+    if (!tag || tag.length > 40 || GENERIC_TAGS.test(tag) || GENERIC_TAGS_UR.test(tag) || seen.has(key)) continue;
     seen.add(key);
     tags.push(tag);
   }
@@ -237,13 +285,14 @@ export function normalizeItem(item, feed, now = Date.now()) {
   // captions; Atom feeds put the short version in `summary`.
   const excerpt = toExcerpt(cleanSummary(stripHtml(item.summary || item.content || item.contentSnippet || ''), title));
   const imageUrl = pickImage(item, url);
-  const category = resolveCategory(feed, labels);
+  const category = resolveCategory(feed, labels, title);
+  const language = feed.language ?? 'en';
 
   return {
     id: articleId(url),
     url,
     origin: 'rss',
-    language: feed.language ?? 'en',
+    language,
     title,
     excerpt,
     imageUrl,
@@ -256,6 +305,8 @@ export function normalizeItem(item, feed, now = Date.now()) {
     isBreaking: false,
     views: 0,
     shares: 0,
-    urdu: { status: 'pending', attempts: 0 }, // picked up by the translator (Milestone 2)
+    // English stories queue for the (optional) Urdu translator. Urdu stories
+    // are already in Urdu, so they never enter that queue.
+    ...(language === 'en' && { urdu: { status: 'pending', attempts: 0 } }),
   };
 }

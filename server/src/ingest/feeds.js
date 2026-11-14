@@ -1,4 +1,4 @@
-// RSS feeds the ingester reads (English edition).
+// RSS feeds the ingester reads: the English edition, then the Urdu edition.
 //
 // source    → id in src/data/sources.js
 // category  → fixed category for every story, or 'auto' = decide per story
@@ -6,7 +6,7 @@
 //             falling back to `fallback` when no label matches
 // tags      → added to every story (only feeds that are *about* Pakistan get
 //             'Pakistan'; others are tagged when the text mentions Pakistan)
-// language  → 'en' for this edition (an Urdu edition will add Urdu feeds)
+// language  → which edition the stories appear in: 'en' or 'ur'
 //
 // ORDER MATTERS: when a story appears in several feeds, the FIRST feed wins
 // (existing articles are never overwritten), so specific feeds come first.
@@ -99,4 +99,32 @@ const INTERNATIONAL_FEEDS = [
   { source: 'variety',      category: 'entertainment', url: 'https://variety.com/feed/' },
 ];
 
-export const FEEDS = [...PAKISTAN_FEEDS, ...INTERNATIONAL_FEEDS].map(feed => ({ language: 'en', ...feed }));
+// ── Urdu edition ──────────────────────────────────────────────────────────
+// Urdu-language publishers only (no machine translation). Tested 2026-11-13.
+// Rejected: Dawn News Urdu (every feed stuck at January 2026), Geo Urdu and
+// Daily Pakistan (their /rss URLs return the home page, not a feed), Urdu
+// News (stale since 2024), Nawa-i-Waqt / Dunya (404), Hum / UrduPoint (403),
+// Samaa / VOA Urdu / DW Urdu (connection refused or timed out).
+const URDU_FEEDS = [
+  // Jang: section feeds (same layout as Geo English). Sections first, so a
+  // business or sports story that is also in the Pakistan feed keeps its
+  // section. /rss/1/7 is "odd news" — not used.
+  { source: 'jang', category: 'world',         url: 'https://jang.com.pk/rss/1/2' },
+  { source: 'jang', category: 'business',      url: 'https://jang.com.pk/rss/1/3' },
+  { source: 'jang', category: 'sports',        url: 'https://jang.com.pk/rss/1/4' },
+  { source: 'jang', category: 'entertainment', url: 'https://jang.com.pk/rss/1/5' },
+  { source: 'jang', category: 'health',        url: 'https://jang.com.pk/rss/1/6' },
+  { source: 'jang', category: 'pakistan', tags: PK, url: 'https://jang.com.pk/rss/1/1' },
+  // Urdu <category> labels (کھیل, بزنس, انٹر نیشنل…) → see CATEGORY_RULES
+  { source: 'aryurdu', category: 'sports',                       url: 'https://urdu.arynews.tv/category/sports-2/feed/' },
+  { source: 'aryurdu', category: 'auto', fallback: 'pakistan',   url: 'https://urdu.arynews.tv/feed/' },
+  { source: 'express', category: 'auto', fallback: 'pakistan',   url: 'https://www.express.pk/feed/' },
+  // No labels at all → Pakistan if the headline is about Pakistan, else World
+  { source: 'bbcurdu',  category: 'auto', fallback: 'detect', url: 'https://feeds.bbci.co.uk/urdu/rss.xml' },
+  { source: 'indyurdu', category: 'auto', fallback: 'detect', url: 'https://www.independenturdu.com/rss.xml' },
+].map(feed => ({ ...feed, language: 'ur' }));
+
+export const FEEDS = [
+  ...[...PAKISTAN_FEEDS, ...INTERNATIONAL_FEEDS].map(feed => ({ ...feed, language: 'en' })),
+  ...URDU_FEEDS,
+];

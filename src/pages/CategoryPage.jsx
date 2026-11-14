@@ -8,7 +8,7 @@ import NotFoundPage from './NotFoundPage';
 import { useArticleCounts, useArticles } from '../hooks/useNews';
 import { useLanguage } from '../context/language';
 import { getCategory } from '../data/categories';
-import { sources } from '../data/sources';
+import { sourcesFor } from '../data/sources';
 
 const SORTS = ['latest', 'views', 'shares'];
 const RANGES = ['any', '1h', '24h', '7d', '30d'];
@@ -19,7 +19,7 @@ const PAGE_SIZE = 8;
 // for every category.
 export default function CategoryPage() {
   const { slug } = useParams();
-  const { t, categoryLabel } = useLanguage();
+  const { t, categoryLabel, lang } = useLanguage();
   const category = getCategory(slug);
 
   const [source, setSource] = useState(null);
@@ -39,6 +39,7 @@ export default function CategoryPage() {
   if (!category) return <NotFoundPage />;
 
   const label = categoryLabel(category);
+  const sources = sourcesFor(lang);
   const sourceCounts = sources
     .map(s => ({ ...s, count: counts.data?.[s.id] ?? 0 }))
     .filter(s => s.count > 0)

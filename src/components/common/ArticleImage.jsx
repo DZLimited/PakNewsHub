@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { categoryEmoji } from '../../utils/format';
+import { CategoryTile } from './CategoryIcon';
 import { cn } from '../../utils/cn';
 
 /**
- * The story's photo, or the category emoji when there is none (or the image
- * fails to load). Images are served by the news sites; we only store the URL.
+ * The story's photo. Images are served by the news sites; we only store the URL.
+ * When there is no photo (or it fails to load) it shows a tile in the
+ * section's colour with the section icon, or nothing at all if
+ * `placeholder={false}` (the article page drops the photo area instead).
  *
  * mode:
  *  - "cover" (default) fills the box and may crop the edges — for small
@@ -16,7 +18,7 @@ import { cn } from '../../utils/cn';
  *
  * onFail: called if the image can't be loaded (the hero switches layout).
  */
-export default function ArticleImage({ article, alt = '', mode = 'cover', className, emojiClassName, onFail }) {
+export default function ArticleImage({ article, alt = '', mode = 'cover', className, iconSize, placeholder = true, onFail }) {
   const [failed, setFailed] = useState(false);
   const fail = () => {
     setFailed(true);
@@ -24,11 +26,7 @@ export default function ArticleImage({ article, alt = '', mode = 'cover', classN
   };
 
   if (!article.imageUrl || failed) {
-    return (
-      <div aria-hidden className={cn('flex items-center justify-center bg-soft', className, emojiClassName)}>
-        {categoryEmoji(article.category)}
-      </div>
-    );
+    return placeholder ? <CategoryTile categoryId={article.category} iconSize={iconSize} className={className} /> : null;
   }
 
   const common = { src: article.imageUrl, referrerPolicy: 'no-referrer', decoding: 'async' };

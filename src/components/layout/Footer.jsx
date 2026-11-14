@@ -1,14 +1,15 @@
 ﻿import { Link } from 'react-router-dom';
 import { categories } from '../../data/categories';
-import { sources } from '../../data/sources';
+import { sourcesFor } from '../../data/sources';
 import { useLanguage } from '../../context/language';
 import NewsletterForm from '../common/NewsletterForm';
 
-const FOOTER_SOURCES = 12; // Pakistani sources come first in the list
+const FOOTER_SOURCES = 12; // Pakistani sources come first in each edition's list
 
 // Footer colours come from theme variables: white in light mode, navy in dark mode.
 export default function Footer() {
-  const { t, isUrdu } = useLanguage();
+  const { t, isUrdu, lang } = useLanguage();
+  const sources = sourcesFor(lang); // this edition's sources only
 
   const heading = 'mb-3.5 text-[11px] font-bold uppercase tracking-wider text-footer-heading';
   const link = 'text-[13px] text-footer-link transition-colors hover:text-primary';
@@ -50,7 +51,7 @@ export default function Footer() {
               {sources.slice(0, FOOTER_SOURCES).map(src => (
                 <li key={src.id}>
                   <Link to={`/source/${src.id}`} className={link}>
-                    {src.country} {src.name}
+                    {src.name}
                   </Link>
                 </li>
               ))}

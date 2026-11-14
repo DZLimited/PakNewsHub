@@ -1,4 +1,3 @@
-import { getCategory } from '../data/categories';
 
 const UNITS = {
   en: { now: 'just now', m: n => `${n}m ago`,       h: n => `${n}h ago`,         d: n => `${n}d ago` },
@@ -23,4 +22,17 @@ export function formatCount(n) {
   return String(n);
 }
 
-export const categoryEmoji = id => getCategory(id)?.emoji ?? '🌍';
+
+/**
+ * 🇵🇰 → "Pakistan" / "پاکستان". Windows can't draw flag emoji (it shows the
+ * letters "PK"), so the site shows the country's name instead.
+ */
+export function countryName(flag, lang = 'en') {
+  const code = [...(flag ?? '')].map(c => String.fromCharCode(c.codePointAt(0) - 0x1f1e6 + 65)).join('');
+  if (!/^[A-Z]{2}$/.test(code)) return '';
+  try {
+    return new Intl.DisplayNames([lang], { type: 'region' }).of(code) ?? code;
+  } catch {
+    return code;
+  }
+}

@@ -3,10 +3,12 @@
 // Story counts are NOT stored here — the site shows real counts from the API.
 //
 // Every source here has working RSS feeds (server/src/ingest/feeds.js),
-// checked 2026-11-08. `region` groups them in the UI: 'pk' or 'intl'.
+// checked 2026-11-08 (Urdu: 2026-11-13). `region` groups them in the UI:
+// 'pk' or 'intl'. `language` is the edition they belong to, 'en' or 'ur';
+// each edition lists only its own sources (see sourcesFor below).
 
-const s = (id, name, short, country, url, region, color, textColor) =>
-  ({ id, name, short, country, url, region, color, textColor });
+const s = (id, name, short, country, url, region, color, textColor, language = 'en') =>
+  ({ id, name, short, country, url, region, color, textColor, language });
 
 export const sources = [
   // ── Pakistan ────────────────────────────────────────────────────────────
@@ -45,6 +47,16 @@ export const sources = [
   s('ars',           'Ars Technica',             'ARS', '🇺🇸', 'https://arstechnica.com',         'intl', '#FDEFE6', '#8A3A0A'),
   s('sciencedaily',  'ScienceDaily',             'SD',  '🇺🇸', 'https://www.sciencedaily.com',    'intl', '#EDE8FC', '#3B1D8A'),
   s('variety',       'Variety',                  'VAR', '🇺🇸', 'https://variety.com',             'intl', '#FFF3E0', '#7B4500'),
+
+  // ── Urdu edition (Urdu-language publishers, names in Urdu) ─────────────
+  s('jang',          'روزنامہ جنگ',              'JNG', '🇵🇰', 'https://jang.com.pk',             'pk',   '#FDEDEE', '#8A1C24', 'ur'),
+  s('express',       'ایکسپریس نیوز',            'EXP', '🇵🇰', 'https://www.express.pk',          'pk',   '#EEF2FB', '#1E3A7B', 'ur'),
+  s('aryurdu',       'اے آر وائی نیوز',          'ARY', '🇵🇰', 'https://urdu.arynews.tv',         'pk',   '#FFF1E6', '#8A3B00', 'ur'),
+  s('bbcurdu',       'بی بی سی اردو',            'BBC', '🇬🇧', 'https://www.bbc.com/urdu',        'intl', '#E6F1FB', '#0C447C', 'ur'),
+  s('indyurdu',      'انڈپینڈنٹ اردو',           'IU',  '🇬🇧', 'https://www.independenturdu.com', 'intl', '#FCEBEB', '#7A1414', 'ur'),
 ];
 
 export const getSource = id => sources.find(src => src.id === id);
+
+/** The sources of one edition ('en' | 'ur'), Pakistani first. */
+export const sourcesFor = edition => sources.filter(src => src.language === edition);

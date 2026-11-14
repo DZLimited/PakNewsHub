@@ -5,7 +5,8 @@ import ArticleImage from './ArticleImage';
 import BookmarkButton from './BookmarkButton';
 import { Headline, Meta, Subline } from './ArticleText';
 import { useLanguage } from '../../context/language';
-import { categoryEmoji, formatCount } from '../../utils/format';
+import CategoryIcon from './CategoryIcon';
+import { formatCount } from '../../utils/format';
 import { cn } from '../../utils/cn';
 
 /**
@@ -13,7 +14,7 @@ import { cn } from '../../utils/cn';
  *
  * variant:
  *  - "grid"    vertical card (home pairs, related stories)
- *  - "row"     horizontal card with photo/emoji thumbnail (lists, search results)
+ *  - "row"     horizontal card with photo (or section icon) thumbnail (lists, search results)
  *  - "hero"    top story: the WHOLE photo beside the headline + summary
  *              (stacked on phones), or the themed surface when there is no photo.
  *              `label` sets the badge text, `size` = "lg" | "md"
@@ -25,7 +26,7 @@ import { cn } from '../../utils/cn';
 export default function ArticleCard({
   article, variant = 'row', label, size = 'md', rank, badge, showStats = false, className,
 }) {
-  const { t, isUrdu } = useLanguage();
+  const { t, summary: summaryOf } = useLanguage();
   const [photoFailed, setPhotoFailed] = useState(false);
 
   if (variant === 'hero' && article.imageUrl && !photoFailed) {
@@ -33,8 +34,7 @@ export default function ArticleCard({
     // so the whole card fits on screen (~270px tall) and the headline is
     // readable without scrolling. Phone: photo on top, text below.
     // The photo is never cropped (mode="full": blurred fill for other shapes).
-    const summaryIsUrdu = isUrdu && Boolean(article.urduSummary);
-    const summary = summaryIsUrdu ? article.urduSummary : article.excerpt;
+    const { text: summary, urdu: summaryIsUrdu } = summaryOf(article);
     return (
       <article
         className={cn(
@@ -77,7 +77,7 @@ export default function ArticleCard({
   }
 
   if (variant === 'hero') {
-    // Top story WITHOUT a photo: themed surface with a large category emoji.
+    // Top story WITHOUT a photo: themed surface with a large section icon.
     return (
       <article
         className={cn(
@@ -89,15 +89,12 @@ export default function ArticleCard({
           className
         )}
       >
-        <span
-          aria-hidden
-          className={cn(
-            'absolute end-6 top-5 -z-10 opacity-25 select-none dark:opacity-15',
-            size === 'lg' ? 'text-[110px]' : 'text-7xl'
-          )}
-        >
-          {categoryEmoji(article.category)}
-        </span>
+        <CategoryIcon
+          categoryId={article.category}
+          size={size === 'lg' ? 110 : 72}
+          strokeWidth={1.25}
+          className="absolute end-6 top-5 -z-10 text-primary opacity-30 dark:opacity-25"
+        />
         <div aria-hidden className="hero-overlay absolute inset-0 -z-10" />
         <div className={size === 'lg' ? 'p-6' : 'p-5'}>
           <div className="mb-2.5 flex flex-wrap items-center gap-2.5">
@@ -146,7 +143,7 @@ export default function ArticleCard({
         {rank ? (
           <span className="min-w-[22px] text-lg font-bold leading-tight text-primary">{rank}</span>
         ) : (
-          <ArticleImage article={article} className="aspect-video w-[72px] shrink-0 rounded-lg" emojiClassName="text-lg" />
+          <ArticleImage article={article} className="aspect-video w-[72px] shrink-0 rounded-lg" iconSize={18} />
         )}
         <div className="min-w-0">
           <Headline
@@ -166,7 +163,7 @@ export default function ArticleCard({
   // row (default)
   return (
     <article className={cn('card card-link relative flex items-start gap-3.5 rounded-xl px-4 py-3.5', className)}>
-      <ArticleImage article={article} className="aspect-video w-[104px] shrink-0 rounded-lg" emojiClassName="text-[22px]" />
+      <ArticleImage article={article} className="aspect-video w-[104px] shrink-0 rounded-lg" iconSize={22} />
       <div className="min-w-0 flex-1">
         <div className="mb-1.5 flex flex-wrap items-center gap-2">
           <CategoryTag categoryId={article.category} />

@@ -2,7 +2,7 @@
 // The Express server implements the same parameters with MongoDB
 // (server/src/services/articleQuery.js) — keep the two in sync.
 //
-// params: { q, category, source, tag, featured, breaking, exclude,
+// params: { edition, q, category, source, tag, featured, breaking, exclude,
 //           range, sort, limit, offset }
 
 export const RANGES = {
@@ -29,7 +29,15 @@ function relevance(article, terms) {
   return score;
 }
 
+/** Same edition rule as the server (see EDITION_MATCH there). */
+function inEdition(article, edition) {
+  if (edition === 'en') return article.language !== 'ur';
+  if (edition === 'ur') return article.language === 'ur' || Boolean(article.urduTitle);
+  return true; // no edition = both
+}
+
 function matches(article, p, terms, now) {
+  if (!inEdition(article, p.edition)) return false;
   if (p.category && article.category !== p.category) return false;
   if (p.source) {
     const list = Array.isArray(p.source) ? p.source : String(p.source).split(',');

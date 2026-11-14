@@ -1,4 +1,5 @@
-// Static category config (labels, Urdu names, tag colours, card emoji).
+// Static category config (labels, Urdu names, tag colours). `emoji` is only
+// served by the API; the site draws icons instead (CategoryIcon.jsx).
 // Order matters: the navbar shows the first 7.
 //
 // "Pakistan" replaced "Politics" (Nov 2026): Pakistani national news covers

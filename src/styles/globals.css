@@ -311,6 +311,18 @@
   }
   .hero-overlay { background: var(--hero-overlay); }
 
+  /* No-photo tile (CategoryTile): the section's tag colours. In dark mode the
+     pastel background would glare, so it becomes a dark tint of the section
+     colour with a light icon. */
+  .cat-tile {
+    background: var(--cat-bg, var(--bg-soft));
+    color: var(--cat-fg, var(--text-2));
+  }
+  .dark .cat-tile {
+    background: color-mix(in srgb, var(--cat-fg, var(--text-2)) 40%, var(--bg-soft));
+    color: var(--cat-bg, var(--text-2));
+  }
+
   .panel {
     background: var(--panel-bg);
     border: 1px solid var(--panel-border);
