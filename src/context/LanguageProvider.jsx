@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { LanguageContext } from './language';
 import { translate } from '../i18n/strings';
 import { timeAgo } from '../utils/format';
+import { getSource } from '../data/sources';
 
 const STORAGE_KEY = 'lang';
 
@@ -45,6 +46,13 @@ export function LanguageProvider({ children }) {
         return { text: a.excerpt, urdu: false };
       },
       categoryLabel: c => (c ? (isUrdu ? c.urdu : c.label) : ''),
+      // Source name in the UI language: pass an article or a source. Urdu
+      // sources have an English name for the English site.
+      sourceName: x => {
+        const src = x?.sourceName !== undefined ? getSource(x.source) : x;
+        if (!isUrdu && src?.nameEn) return src.nameEn;
+        return x?.sourceName ?? x?.name ?? '';
+      },
       ago: iso => timeAgo(iso, lang),
     };
   }, [lang, toggleLanguage]);

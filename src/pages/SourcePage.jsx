@@ -18,7 +18,7 @@ const PAGE_SIZE = 6;
 // Rendered with key={id} (see AppRouter), so state resets per source.
 export default function SourcePage() {
   const { id } = useParams();
-  const { t, lang, categoryLabel } = useLanguage();
+  const { t, lang, categoryLabel, sourceName } = useLanguage();
   const source = getSource(id);
 
   const [category, setCategory] = useState('all');
@@ -71,7 +71,7 @@ export default function SourcePage() {
           {/* basis-56: on phones the name keeps its width and the buttons wrap below */}
           <div className="min-w-0 flex-1 basis-56">
             <div className="mb-2 flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-bold text-hero-title">{source.name}</h1>
+              <h1 className="text-2xl font-bold text-hero-title">{sourceName(source)}</h1>
               <span className="rounded bg-[#EAF3DE] px-2 py-0.5 text-[11px] font-semibold text-[#27500A]">
                 ✓ {t('verified')}
               </span>
@@ -97,7 +97,7 @@ export default function SourcePage() {
               rel="noopener noreferrer"
               className="btn-ghost flex-1 rounded-xl px-4 py-2 text-[13px] sm:flex-none"
             >
-              <ExternalLink size={14} /> {t('visit', { name: source.name })}
+              <ExternalLink size={14} /> {t('visit', { name: sourceName(source) })}
             </a>
           </div>
         </div>
@@ -146,7 +146,7 @@ export default function SourcePage() {
                           disabled={list.isFetching}
                           className="btn-ghost rounded-xl px-8 py-2.5 text-[13px]"
                         >
-                          {t('loadMoreFrom', { source: source.name })}
+                          {t('loadMoreFrom', { source: sourceName(source) })}
                         </button>
                       </div>
                     )}
@@ -182,7 +182,7 @@ export default function SourcePage() {
                   <Link key={src.id} to={`/source/${src.id}`} className="flex items-center gap-3 transition-opacity hover:opacity-80">
                     <SourceLogo source={src} size="sm" />
                     <div>
-                      <p className="text-[13px] font-medium text-ink">{src.name}</p>
+                      <p className="text-[13px] font-medium text-ink">{sourceName(src)}</p>
                       {src.count > 0 && (
                         <p className="text-[11px] text-muted">{t('storiesCount', { n: src.count.toLocaleString() })}</p>
                       )}

@@ -46,10 +46,10 @@ export function Subline({ article, className }) {
 /** "BBC World · 12m ago". Each part is wrapped in <bdi> so an English source
  *  name next to Urdu "1 گھنٹے پہلے" doesn't get reordered by the bidi algorithm. */
 export function Meta({ article, className }) {
-  const { ago } = useLanguage();
+  const { ago, sourceName } = useLanguage();
   return (
     <span className={cn('text-[11px] text-muted', className)}>
-      <bdi>{article.sourceName}</bdi> · <bdi>{ago(article.publishedAt)}</bdi>
+      <bdi>{sourceName(article)}</bdi> · <bdi>{ago(article.publishedAt)}</bdi>
     </span>
   );
 }

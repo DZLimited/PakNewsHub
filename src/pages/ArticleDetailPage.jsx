@@ -93,7 +93,7 @@ export default function ArticleDetailPage() {
 }
 
 function ArticleView({ article }) {
-  const { t, isUrdu, title, showsUrdu, summary: summaryOf, categoryLabel, ago } = useLanguage();
+  const { t, isUrdu, title, showsUrdu, summary: summaryOf, categoryLabel, ago, sourceName } = useLanguage();
   const category = getCategory(article.category);
   const source = getSource(article.source);
 
@@ -125,7 +125,7 @@ function ArticleView({ article }) {
       : article.urduSummary ? urduBox : null;
 
   const externalUrl = article.url ?? source?.url;
-  const externalLabel = article.url ? t('readOn', { source: article.sourceName }) : t('visit', { name: article.sourceName });
+  const externalLabel = article.url ? t('readOn', { source: sourceName(article) }) : t('visit', { name: sourceName(article) });
 
   return (
     <div className="wrap py-6">
@@ -168,7 +168,7 @@ function ArticleView({ article }) {
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4.5">
             <div className="flex flex-wrap items-center gap-2.5 text-xs text-muted">
               <Link to={`/source/${article.source}`} className="btn-ghost rounded-full px-3 py-1">
-                <ExternalLink size={12} /> {article.sourceName}
+                <ExternalLink size={12} /> {sourceName(article)}
               </Link>
               <span className="flex items-center gap-1.5"><Clock size={13} /> {ago(article.publishedAt)}</span>
               {article.views > 0 && (
@@ -215,9 +215,9 @@ function ArticleView({ article }) {
               )}
               {article.url && (
                 <div className="panel flex flex-wrap items-center justify-between gap-3 p-4">
-                  <p className="text-[13px] text-panel-text">{t('readFullStory', { source: article.sourceName })}</p>
+                  <p className="text-[13px] text-panel-text">{t('readFullStory', { source: sourceName(article) })}</p>
                   <a href={article.url} target="_blank" rel="noopener noreferrer" className="btn-primary">
-                    {t('readOn', { source: article.sourceName })} <ExternalLink size={13} />
+                    {t('readOn', { source: sourceName(article) })} <ExternalLink size={13} />
                   </a>
                 </div>
               )}
@@ -266,20 +266,20 @@ function ArticleView({ article }) {
               <div className="mb-3 flex items-center gap-3">
                 <SourceLogo source={source} />
                 <div>
-                  <p className="text-[13px] font-bold text-ink">{source.name}</p>
+                  <p className="text-[13px] font-bold text-ink">{sourceName(source)}</p>
                   {sourceCounts.data?.[source.id] > 0 && (
                     <p className="text-[11px] text-muted">{t('storiesCount', { n: sourceCounts.data[source.id].toLocaleString() })}</p>
                   )}
                 </div>
               </div>
               <Link to={`/source/${source.id}`} className="btn-ghost w-full bg-soft font-semibold">
-                {t('viewAllFrom', { source: source.name })}
+                {t('viewAllFrom', { source: sourceName(source) })}
               </Link>
             </section>
           )}
 
           <section className="widget">
-            <h2 className="widget-title">{t('moreFrom', { source: article.sourceName })}</h2>
+            <h2 className="widget-title">{t('moreFrom', { source: sourceName(article) })}</h2>
             <div className="flex flex-col gap-3.5">
               <QueryBoundary query={moreFromSource} fallback={<CardSkeleton variant="compact" count={3} />}>
                 {({ items }) => items.map(a => <ArticleCard key={a.id} article={a} variant="compact" />)}
