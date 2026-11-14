@@ -21,12 +21,21 @@ const FETCH_CONCURRENCY = 6;            // be polite to the news sites
 const FETCH_TIMEOUT_MS = 20_000;
 const MAX_REDIRECTS = 5;
 const MAX_FEED_BYTES = 5 * 1024 * 1024; // a real feed is < 500 KB
-const USER_AGENT = 'PakNewsHub/1.0 (news aggregator; +https://github.com/DZLimited/PakNewsHub)';
+export const USER_AGENT = 'PakNewsHub/1.0 (news aggregator; +https://github.com/DZLimited/PakNewsHub)';
 
 const DECOMPRESS = { gzip: zlib.createGunzip, deflate: zlib.createInflate, br: zlib.createBrotliDecompress };
 
+const FEED_ACCEPT = 'application/rss+xml, application/rdf+xml, application/xml, text/xml;q=0.9, */*;q=0.5';
+
+/** Download a feed's XML. */
+export const fetchFeedXml = url => fetchText(url, { accept: FEED_ACCEPT });
+
 /**
- * Download a feed's XML, with a hard timeout that really closes the socket.
+ * Download a URL as text, with a hard timeout that really closes the socket.
+ * Used for feeds and (photos.js) story pages.
+ *
+ * stopAt: stop downloading once this text has arrived (story pages only need
+ * their <head>, which holds the photo link) — saves the news sites bandwidth.
  *
  * Why not rss-parser's parseURL() or fetch()? DW's server sometimes accepts a
  * connection and then never answers. rss-parser's timeout only stops
@@ -35,14 +44,14 @@ const DECOMPRESS = { gzip: zlib.createGunzip, deflate: zlib.createInflate, br: z
  * call req.destroy() on timeout, which closes the connection immediately.
  * `agent: false` = no keep-alive pool, so nothing lingers between runs.
  */
-export function fetchFeedXml(url, redirectsLeft = MAX_REDIRECTS) {
+export function fetchText(url, { accept = '*/*', maxBytes = MAX_FEED_BYTES, stopAt, timeoutMs = FETCH_TIMEOUT_MS } = {}, redirectsLeft = MAX_REDIRECTS) {
   return new Promise((resolve, reject) => {
     const lib = url.startsWith('https:') ? https : http;
     const req = lib.get(url, {
       agent: false,
       headers: {
         'User-Agent': USER_AGENT,
-        Accept: 'application/rss+xml, application/rdf+xml, application/xml, text/xml;q=0.9, */*;q=0.5',
+        Accept: accept,
         'Accept-Encoding': 'gzip, deflate, br',
       },
     }, res => {
@@ -51,7 +60,7 @@ export function fetchFeedXml(url, redirectsLeft = MAX_REDIRECTS) {
       if (status >= 300 && status < 400 && res.headers.location) {
         res.resume(); // discard body
         if (redirectsLeft <= 0) return reject(new Error('too many redirects'));
-        return resolve(fetchFeedXml(new URL(res.headers.location, url).toString(), redirectsLeft - 1));
+        return resolve(fetchText(new URL(res.headers.location, url).toString(), { accept, maxBytes, stopAt, timeoutMs }, redirectsLeft - 1));
       }
       if (status !== 200) {
         res.resume();
@@ -62,18 +71,32 @@ export function fetchFeedXml(url, redirectsLeft = MAX_REDIRECTS) {
       const body = decompress ? res.pipe(decompress()) : res;
       const chunks = [];
       let size = 0;
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        resolve(Buffer.concat(chunks).toString('utf8'));
+      };
       body.on('data', chunk => {
+        if (done) return;
         size += chunk.length;
-        if (size > MAX_FEED_BYTES) req.destroy(new Error('feed too large'));
-        else chunks.push(chunk);
+        if (size > maxBytes) return req.destroy(new Error('response too large'));
+        chunks.push(chunk);
+        if (!stopAt) return;
+        // include the end of the previous chunk, in case the marker is split
+        const prev = chunks.length > 1 ? chunks[chunks.length - 2].subarray(-stopAt.length) : Buffer.alloc(0);
+        if (Buffer.concat([prev, chunk]).includes(stopAt)) {
+          finish();
+          req.destroy(); // close the connection, the rest isn't needed
+        }
       });
-      body.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
-      body.on('error', reject);
+      body.on('end', finish);
+      body.on('error', err => (done ? undefined : reject(err)));
     });
 
     const timer = setTimeout(
-      () => req.destroy(new Error(`timed out after ${FETCH_TIMEOUT_MS / 1000}s`)),
-      FETCH_TIMEOUT_MS
+      () => req.destroy(new Error(`timed out after ${timeoutMs / 1000}s`)),
+      timeoutMs
     );
     req.on('error', reject);
     req.on('close', () => clearTimeout(timer));
@@ -94,7 +117,7 @@ export function createParser() {
 }
 
 /** Like Promise.allSettled, but runs at most `limit` tasks at a time. */
-async function settledWithLimit(items, limit, task) {
+export async function settledWithLimit(items, limit, task) {
   const results = new Array(items.length);
   let next = 0;
   async function worker() {

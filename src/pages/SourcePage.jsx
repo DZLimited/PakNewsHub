@@ -9,7 +9,8 @@ import NotFoundPage from './NotFoundPage';
 import { useArticleCounts, useArticles } from '../hooks/useNews';
 import { useLanguage } from '../context/language';
 import { categories } from '../data/categories';
-import { getSource, sources } from '../data/sources';
+import { getSource, sourcesFor } from '../data/sources';
+import { countryName } from '../utils/format';
 
 const SORTS = ['latest', 'views'];
 const PAGE_SIZE = 6;
@@ -17,18 +18,23 @@ const PAGE_SIZE = 6;
 // Rendered with key={id} (see AppRouter), so state resets per source.
 export default function SourcePage() {
   const { id } = useParams();
-  const { t, categoryLabel } = useLanguage();
+  const { t, lang, categoryLabel } = useLanguage();
   const source = getSource(id);
 
   const [category, setCategory] = useState('all');
   const [sort, setSort] = useState('latest');
   const [limit, setLimit] = useState(PAGE_SIZE);
 
+  // A source page shows its own edition (a Jang page works from the English
+  // site too), and "other sources" come from that same edition.
+  const edition = source?.language ?? 'en';
   const list = useArticles(
-    { source: id, category: category === 'all' ? undefined : category, sort, limit },
+    { edition, source: id, category: category === 'all' ? undefined : category, sort, limit },
     { enabled: Boolean(source) }
   );
-  const counts = useArticleCounts('category', { source: id }); // unfiltered, for tabs + breakdown
+  const counts = useArticleCounts('category', { edition, source: id }); // unfiltered, for tabs + breakdown
+  const today = useArticleCounts('category', { edition, source: id, range: '24h' });
+  const perSource = useArticleCounts('source', { edition }); // to rank the other sources
 
   if (!source) return <NotFoundPage />;
 
@@ -39,12 +45,18 @@ export default function SourcePage() {
     .sort((a, b) => b.count - a.count)
     .map(c => ({ ...c, pct: Math.round((c.count / Math.max(totalHere, 1)) * 100) }));
 
-  const otherSources = sources.filter(s => s.id !== source.id).slice(0, 4);
+  const sum = data => Object.values(data ?? {}).reduce((total, n) => total + n, 0);
+  // Most active other sources first
+  const otherSources = sourcesFor(edition)
+    .filter(s => s.id !== source.id)
+    .map(s => ({ ...s, count: perSource.data?.[s.id] ?? 0 }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 4);
   const pickCategory = c => { setCategory(c); setLimit(PAGE_SIZE); };
 
   const stats = [
-    { value: source.articles.toLocaleString(), label: t('stat_articles') },
-    { value: totalHere, label: t('stat_onSite') },
+    { value: totalHere.toLocaleString(), label: t('stat_onSite') },
+    { value: sum(today.data).toLocaleString(), label: t('stat_today') },
     { value: breakdown.length, label: t('stat_categories') },
   ];
 
@@ -56,14 +68,15 @@ export default function SourcePage() {
         <div className="wrap flex flex-wrap items-start gap-6 py-6">
           <SourceLogo source={source} size="lg" />
 
-          <div className="min-w-0 flex-1">
+          {/* basis-56: on phones the name keeps its width and the buttons wrap below */}
+          <div className="min-w-0 flex-1 basis-56">
             <div className="mb-2 flex flex-wrap items-center gap-3">
               <h1 className="text-2xl font-bold text-hero-title">{source.name}</h1>
               <span className="rounded bg-[#EAF3DE] px-2 py-0.5 text-[11px] font-semibold text-[#27500A]">
                 ✓ {t('verified')}
               </span>
             </div>
-            <p className="mb-4 text-[13px] text-hero-meta">{source.country} {t('newsSource')}</p>
+            <p className="mb-4 text-[13px] text-hero-meta">{countryName(source.country, lang)} · {t(source.region === 'pk' ? 'newsSourcePk' : 'newsSource')}</p>
             <div className="grid max-w-sm grid-cols-3 gap-3">
               {stats.map(s => (
                 <div key={s.label} className="rounded-xl border border-line/60 bg-hero-chip p-3 text-center dark:border-transparent">
@@ -74,15 +87,15 @@ export default function SourcePage() {
             </div>
           </div>
 
-          <div className="flex shrink-0 flex-col gap-2">
-            <button type="button" disabled title={t('comingSoon')} className="btn-primary rounded-xl px-4 py-2">
+          <div className="flex w-full gap-2 sm:w-auto sm:shrink-0 sm:flex-col">
+            <button type="button" disabled title={t('comingSoon')} className="btn-primary flex-1 rounded-xl px-4 py-2 sm:flex-none">
               <Bell size={14} /> {t('followSource')}
             </button>
             <a
               href={source.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-ghost rounded-xl px-4 py-2 text-[13px]"
+              className="btn-ghost flex-1 rounded-xl px-4 py-2 text-[13px] sm:flex-none"
             >
               <ExternalLink size={14} /> {t('visit', { name: source.name })}
             </a>
@@ -170,7 +183,9 @@ export default function SourcePage() {
                     <SourceLogo source={src} size="sm" />
                     <div>
                       <p className="text-[13px] font-medium text-ink">{src.name}</p>
-                      <p className="text-[11px] text-muted">{t('articlesCount', { n: src.articles.toLocaleString() })}</p>
+                      {src.count > 0 && (
+                        <p className="text-[11px] text-muted">{t('storiesCount', { n: src.count.toLocaleString() })}</p>
+                      )}
                     </div>
                   </Link>
                 ))}

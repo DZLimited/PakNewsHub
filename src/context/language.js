@@ -9,6 +9,7 @@ export const LanguageContext = createContext(null);
  *                          Urdu translation exists yet)
  *  - altTitle(article)   → headline in the other language, or null
  *  - showsUrdu(article)  → true when title(article) is Urdu text
+ *  - summary(article)    → { text, urdu } short summary in the best language
  *  - categoryLabel(cat)  → category name in the current language
  *  - ago(iso)            → localized relative time
  */

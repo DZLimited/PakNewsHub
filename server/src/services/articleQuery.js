@@ -14,6 +14,7 @@ export const RANGES = {
 export const SORTS = ['relevance', 'latest', 'views', 'shares'];
 export const GROUP_FIELDS = ['source', 'category'];
 export const MAX_LIMIT = 100;
+export const EDITIONS = ['en', 'ur'];
 
 const escapeRegex = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const isTrue = v => v === true || v === 'true' || v === '1';
@@ -25,6 +26,7 @@ export function parseParams(raw = {}) {
   const offset = Number.parseInt(raw.offset, 10);
   return {
     terms: String(raw.q ?? '').trim().toLowerCase().split(/\s+/).filter(Boolean).slice(0, 10),
+    edition: EDITIONS.includes(raw.edition) ? raw.edition : undefined, // none = both
     category: raw.category ? String(raw.category) : undefined,
     sources: list(raw.source),
     tag: raw.tag ? String(raw.tag) : undefined,
@@ -38,8 +40,22 @@ export function parseParams(raw = {}) {
   };
 }
 
+/**
+ * Which stories belong to an edition:
+ *  - English: every story that isn't written in Urdu
+ *  - Urdu:    stories written in Urdu, plus any story that has an Urdu
+ *             headline (the bundled demo stories; translated ones if the
+ *             optional translator is ever switched on)
+ */
+const EDITION_MATCH = {
+  en: { language: { $ne: 'ur' } },
+  ur: { $or: [{ language: 'ur' }, { urduTitle: { $nin: [null, ''] } }] },
+};
+
 function buildMatch(p, now = Date.now()) {
   const match = {};
+  const and = []; // conditions that need their own $or
+  if (p.edition) and.push(EDITION_MATCH[p.edition]);
   if (p.category) match.category = p.category;
   if (p.sources.length) match.source = { $in: p.sources };
   if (p.tag) match.tags = p.tag;
@@ -50,11 +66,14 @@ function buildMatch(p, now = Date.now()) {
   if (window) match.publishedAt = { $gte: new Date(now - window) };
   if (p.terms.length) {
     // any term in any searchable field (same as relevance > 0)
-    match.$or = p.terms.flatMap(term => {
-      const re = new RegExp(escapeRegex(term), 'i');
-      return [{ title: re }, { urduTitle: re }, { tags: re }, { excerpt: re }];
+    and.push({
+      $or: p.terms.flatMap(term => {
+        const re = new RegExp(escapeRegex(term), 'i');
+        return [{ title: re }, { urduTitle: re }, { tags: re }, { excerpt: re }];
+      }),
     });
   }
+  if (and.length) match.$and = and;
   return match;
 }
 
@@ -114,7 +133,7 @@ export async function queryArticles(rawParams) {
         { $sort: sortStage(p) },
         { $skip: p.offset },
         { $limit: p.limit },
-        { $project: { _id: 0, score: 0 } },
+        { $project: { _id: 0, score: 0, photo: 0 } }, // photo = photo-finder bookkeeping
       ],
       total: [{ $count: 'n' }],
     },

@@ -10,7 +10,7 @@ import NewsletterForm from '../components/common/NewsletterForm';
 import { Skeleton, CardSkeleton } from '../components/common/Skeleton';
 import { ErrorState, QueryBoundary } from '../components/common/States';
 import NotFoundPage from './NotFoundPage';
-import { useArticle, useArticles } from '../hooks/useNews';
+import { useArticle, useArticleCounts, useArticles } from '../hooks/useNews';
 import { recordView } from '../api/news';
 import { useLanguage } from '../context/language';
 import { getCategory } from '../data/categories';
@@ -93,29 +93,36 @@ export default function ArticleDetailPage() {
 }
 
 function ArticleView({ article }) {
-  const { t, isUrdu, title, showsUrdu, categoryLabel, ago } = useLanguage();
+  const { t, isUrdu, title, showsUrdu, summary: summaryOf, categoryLabel, ago } = useLanguage();
   const category = getCategory(article.category);
   const source = getSource(article.source);
 
   useEffect(() => { recordView(article.id); }, [article.id]);
 
-  const related = useArticles({ category: article.category, exclude: article.id, limit: 3 });
-  const moreFromSource = useArticles({ source: article.source, exclude: article.id, limit: 3 });
+  // The side lists come from the story's own edition, so an Urdu story opened
+  // from the English site (e.g. a bookmark) still gets Urdu related stories.
+  const edition = article.language === 'ur' ? 'ur' : 'en';
+  const related = useArticles({ edition, category: article.category, exclude: article.id, limit: 3 });
+  const moreFromSource = useArticles({ edition, source: article.source, exclude: article.id, limit: 3 });
+  const sourceCounts = useArticleCounts('source', { edition }); // real story counts per source
 
   // Demo articles have a full body. Real (RSS) articles only have a short
   // summary — we never copy full stories — and link to the original.
   const hasBody = Boolean(article.body?.length);
-  // For RSS articles in Urdu mode, the main text is the Urdu summary once the
-  // translator has produced one; otherwise the English excerpt.
-  const mainIsUrdu = !hasBody && isUrdu && Boolean(article.urduSummary);
+  // RSS stories: the main text is the summary in the best language: Urdu
+  // for Urdu-edition stories (and translated ones in Urdu mode), else English.
+  const main = summaryOf(article);
+  const mainIsUrdu = !hasBody && main.urdu;
 
-  // Summary box shows the *other* language (hidden when it doesn't exist yet
-  // or would just repeat the main text).
+  // Summary box shows the *other* language (hidden when it doesn't exist,
+  // e.g. Urdu-edition stories have no English version, or would repeat the main text).
   const englishBox = { label: t('englishSummary'), text: article.excerpt, dir: 'ltr', lang: 'en', className: '' };
   const urduBox = { label: t('urduSummary'), text: article.urduSummary, dir: 'rtl', lang: 'ur', className: 'urdu text-[15px]' };
-  const summary = isUrdu
-    ? (hasBody || mainIsUrdu) && article.excerpt ? englishBox : null
-    : article.urduSummary ? urduBox : null;
+  const summary = article.language === 'ur'
+    ? null
+    : isUrdu
+      ? (hasBody || mainIsUrdu) && article.excerpt ? englishBox : null
+      : article.urduSummary ? urduBox : null;
 
   const externalUrl = article.url ?? source?.url;
   const externalLabel = article.url ? t('readOn', { source: article.sourceName }) : t('visit', { name: article.sourceName });
@@ -174,11 +181,14 @@ function ArticleView({ article }) {
             <ShareButtons article={article} />
           </div>
 
+          {/* Whole photo, never cropped (16:9 frame, blurred fill for other shapes).
+              No photo → no box: the summary moves up under the headline. */}
           <ArticleImage
             article={article}
             alt={title(article)}
-            className="mb-6 h-60 w-full rounded-2xl border border-line sm:h-80"
-            emojiClassName="text-6xl"
+            mode="full"
+            placeholder={false}
+            className="mb-6 aspect-video max-h-[420px] w-full rounded-2xl border border-line"
           />
 
           {hasBody ? (
@@ -197,7 +207,7 @@ function ArticleView({ article }) {
           ) : (
             <div className="mb-6">
               {mainIsUrdu ? (
-                <p lang="ur" className="urdu mb-4 text-[17px] text-ink">{article.urduSummary}</p>
+                main.text && <p lang="ur" dir="rtl" className="urdu mb-4 text-[17px] text-ink">{main.text}</p>
               ) : (
                 article.excerpt && (
                   <p dir="ltr" lang="en" className="mb-4 text-[16px] leading-[1.8] text-ink">{article.excerpt}</p>
@@ -224,7 +234,8 @@ function ArticleView({ article }) {
                   {article.tags.map(tag => (
                     <Link key={tag} to={`/search?q=${encodeURIComponent(tag)}`}
                           className="rounded border border-line bg-soft px-2.5 py-0.5 text-xs text-muted hover:border-primary hover:text-primary">
-                      {tag}
+                      {/* the internal "Pakistan" tag reads in Urdu on the Urdu site */}
+                      {tag === 'Pakistan' && isUrdu ? categoryLabel(getCategory('pakistan')) : tag}
                     </Link>
                   ))}
                 </div>
@@ -256,7 +267,9 @@ function ArticleView({ article }) {
                 <SourceLogo source={source} />
                 <div>
                   <p className="text-[13px] font-bold text-ink">{source.name}</p>
-                  <p className="text-[11px] text-muted">{t('articlesCount', { n: source.articles.toLocaleString() })}</p>
+                  {sourceCounts.data?.[source.id] > 0 && (
+                    <p className="text-[11px] text-muted">{t('storiesCount', { n: sourceCounts.data[source.id].toLocaleString() })}</p>
+                  )}
                 </div>
               </div>
               <Link to={`/source/${source.id}`} className="btn-ghost w-full bg-soft font-semibold">

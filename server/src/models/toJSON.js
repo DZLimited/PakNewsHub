@@ -6,6 +6,7 @@ export const publicSchemaOptions = {
   toJSON: {
     transform: (_doc, ret) => {
       delete ret._id;
+      delete ret.photo; // photo-finder bookkeeping (Article), not for the site
       return ret;
     },
   },

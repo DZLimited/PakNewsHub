@@ -7,7 +7,7 @@ export const articlesRouter = Router();
 
 /**
  * GET /api/articles
- *   ?q=&category=&source=bbc,dawn&tag=&featured=true&breaking=true
+ *   ?edition=en|ur&q=&category=&source=bbc,dawn&tag=&featured=true&breaking=true
  *   &exclude=<id>&range=any|1h|24h|7d|30d&sort=latest|views|shares|relevance
  *   &limit=&offset=
  * → { items: Article[], total: number }

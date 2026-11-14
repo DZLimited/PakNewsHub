@@ -1,12 +1,15 @@
 ﻿import { Link } from 'react-router-dom';
 import { categories } from '../../data/categories';
-import { sources } from '../../data/sources';
+import { sourcesFor } from '../../data/sources';
 import { useLanguage } from '../../context/language';
 import NewsletterForm from '../common/NewsletterForm';
 
+const FOOTER_SOURCES = 12; // Pakistani sources come first in each edition's list
+
 // Footer colours come from theme variables: white in light mode, navy in dark mode.
 export default function Footer() {
-  const { t, isUrdu } = useLanguage();
+  const { t, isUrdu, lang } = useLanguage();
+  const sources = sourcesFor(lang); // this edition's sources only
 
   const heading = 'mb-3.5 text-[11px] font-bold uppercase tracking-wider text-footer-heading';
   const link = 'text-[13px] text-footer-link transition-colors hover:text-primary';
@@ -21,7 +24,7 @@ export default function Footer() {
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-[15px] font-bold text-on-primary">P</span>
               <span className="text-[17px] font-bold text-footer-heading">PakNews<span className="text-primary">Hub</span></span>
             </div>
-            <p className="mb-3 text-[13px] leading-relaxed text-footer-text">{t('brandTagline')}</p>
+            <p className="mb-3 text-[13px] leading-relaxed text-footer-text">{t('brandTagline', { n: sources.length })}</p>
             {!isUrdu && (
               <p className="urdu text-[13px] text-footer-text" lang="ur">پاکستان کا پہلا بین الاقوامی خبروں کا پلیٹ فارم</p>
             )}
@@ -45,13 +48,16 @@ export default function Footer() {
           <div>
             <p className={heading}>{t('sources')}</p>
             <ul className="flex flex-col gap-2">
-              {sources.map(src => (
+              {sources.slice(0, FOOTER_SOURCES).map(src => (
                 <li key={src.id}>
                   <Link to={`/source/${src.id}`} className={link}>
-                    {src.country} {src.name}
+                    {src.name}
                   </Link>
                 </li>
               ))}
+              {sources.length > FOOTER_SOURCES && (
+                <li className="text-[13px] text-footer-link">{t('moreSources', { n: sources.length - FOOTER_SOURCES })}</li>
+              )}
             </ul>
           </div>
 

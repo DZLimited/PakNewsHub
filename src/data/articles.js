@@ -204,7 +204,7 @@ export const articles = [
     tags: ["Turkey", "Greece", "Aegean", "Diplomacy"],
   },
 
-  // ── POLITICS (4) ───────────────────────────────────────────────────────────
+  // ── FORMERLY POLITICS (4): now Pakistan / World ───────────────────────────────────────────────────────────
   {
     id: "2",
     title: "NATO Secretary General Warns of Rising Russian Military Build-Up Near Eastern European Borders",
@@ -215,7 +215,7 @@ export const articles = [
       "NATO's Secretary General issued a stark warning Tuesday about what alliance officials described as a significant Russian military build-up along the alliance's eastern flank.",
       "The warning comes after satellite imagery and intelligence reports confirmed the movement of armored divisions closer to the borders of Poland, Estonia, and Latvia over the past three weeks.",
     ],
-    category: "politics",
+    category: "world",
     source: "reuters",
     sourceName: "Reuters",
     publishedAt: "2026-05-09T07:00:00Z",
@@ -236,7 +236,7 @@ export const articles = [
       "Pakistan's National Assembly passed a landmark election reform bill on Thursday, introducing real-time digital result transmission and stronger oversight of campaign financing.",
       "Opposition lawmakers who initially objected to parts of the bill ultimately voted in favor after amendments were added guaranteeing independent audits of the new digital system.",
     ],
-    category: "politics",
+    category: "pakistan",
     source: "dawn",
     sourceName: "Dawn",
     publishedAt: "2026-05-09T06:45:00Z",
@@ -257,7 +257,7 @@ export const articles = [
       "France's president carried out a significant cabinet reshuffle on Wednesday, replacing the finance minister amid mounting pressure from coalition partners over the government's economic agenda.",
       "The reshuffle is widely seen as an attempt to shore up a fragile parliamentary majority ahead of a confidence vote expected later this year.",
     ],
-    category: "politics",
+    category: "world",
     source: "reuters",
     sourceName: "Reuters",
     publishedAt: "2026-05-08T18:00:00Z",
@@ -278,7 +278,7 @@ export const articles = [
       "Primary election results across several key US states this week are reshaping expectations for November's midterms, with independent voters breaking in unexpected directions in suburban districts.",
       "Political analysts say the results suggest neither party can take its traditional base for granted, setting up an unusually competitive general election season.",
     ],
-    category: "politics",
+    category: "world",
     source: "ap",
     sourceName: "AP News",
     publishedAt: "2026-05-08T12:00:00Z",

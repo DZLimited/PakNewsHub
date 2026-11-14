@@ -22,11 +22,25 @@ const urduStatusSchema = new mongoose.Schema(
   { _id: false }
 );
 
+// Photo finder (ingest/photos.js) progress, for RSS stories whose feed had
+// no photo: it reads the photo from the story's web page.
+const photoLookupSchema = new mongoose.Schema(
+  {
+    result:    { type: String, enum: ['found', 'none', 'error'] },
+    tries:     { type: Number, default: 0 },
+    done:      { type: Boolean, default: false }, // settled: never fetched again
+    checkedAt: { type: Date },
+  },
+  { _id: false }
+);
+
 const articleSchema = new mongoose.Schema(
   {
     id:          { type: String, required: true, unique: true, trim: true },
     // 'demo' = bundled sample data (npm run seed), 'rss' = fetched by the ingester
     origin:      { type: String, enum: ['demo', 'rss'], default: 'demo' },
+    // Edition the story belongs to: 'en' or 'ur' (= the feed's language)
+    language:    { type: String, enum: ['en', 'ur'], default: 'en' },
     url:         { type: String },                     // original story URL (rss: unique key)
     title:       { type: String, required: true, trim: true },
     urduTitle:   { type: String, trim: true },         // rss: filled in later by the translator
@@ -46,12 +60,14 @@ const articleSchema = new mongoose.Schema(
     tags:        { type: [String], default: [] },
     quote:       { type: quoteSchema },
     urdu:        { type: urduStatusSchema },
+    photo:       { type: photoLookupSchema },
   },
   { ...publicSchemaOptions, timestamps: false }
 );
 
 // Indexes for the common list queries
 articleSchema.index({ publishedAt: -1 });
+articleSchema.index({ language: 1, publishedAt: -1 });
 articleSchema.index({ category: 1, publishedAt: -1 });
 articleSchema.index({ source: 1, publishedAt: -1 });
 articleSchema.index({ tags: 1 });

@@ -7,14 +7,14 @@ import { EmptyState, QueryBoundary } from '../components/common/States';
 import { useArticleCounts, useArticles } from '../hooks/useNews';
 import { useLanguage } from '../context/language';
 import { categories } from '../data/categories';
-import { sources } from '../data/sources';
+import { sourcesFor } from '../data/sources';
 import { cn } from '../utils/cn';
 
 const RANGES = ['any', '1h', '24h', '7d', '30d'];
 const PAGE_SIZE = 8;
 
 export default function SearchPage() {
-  const { t, isUrdu, categoryLabel } = useLanguage();
+  const { t, lang, categoryLabel, summary } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // The URL is the single source of truth for the query; `draft` is only what
@@ -147,12 +147,11 @@ export default function SearchPage() {
                         <span aria-hidden className="shrink-0 text-xl">✨</span>
                         <div>
                           <p className="mb-1.5 text-[13px] font-semibold text-panel-title">{t('topStorySummary')}</p>
-                          {/* Urdu summary only once the translator has made one */}
                           <p
-                            dir={isUrdu && top.urduSummary ? 'rtl' : 'ltr'}
-                            className={cn('text-xs leading-relaxed text-panel-text', isUrdu && top.urduSummary && 'urdu text-[13px]')}
+                            dir={summary(top).urdu ? 'rtl' : 'ltr'}
+                            className={cn('text-xs leading-relaxed text-panel-text', summary(top).urdu && 'urdu text-[13px]')}
                           >
-                            {isUrdu && top.urduSummary ? top.urduSummary : top.excerpt}
+                            {summary(top).text}
                           </p>
                         </div>
                       </div>
@@ -195,7 +194,12 @@ export default function SearchPage() {
             <section className="widget">
               <h2 className="widget-title">{t('sourceFilter')}</h2>
               <div className="flex flex-col gap-2.5">
-                {sources.map(src => (
+                {/* Only sources with matching stories (busiest first), plus any already ticked */}
+                {sourcesFor(lang)
+                  .map(src => ({ ...src, count: sourceCounts.data?.[src.id] ?? 0 }))
+                  .filter(src => src.count > 0 || checkedSources.includes(src.id))
+                  .sort((a, b) => b.count - a.count)
+                  .map(src => (
                   <label key={src.id} className="flex cursor-pointer items-center gap-2 text-[13px] text-muted">
                     <input
                       type="checkbox"
@@ -204,7 +208,7 @@ export default function SearchPage() {
                       className="accent-primary"
                     />
                     <span className="flex-1">{src.name}</span>
-                    <span className="text-[11px]">{sourceCounts.data?.[src.id] ?? 0}</span>
+                    <span className="text-[11px]">{src.count}</span>
                   </label>
                 ))}
               </div>

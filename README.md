@@ -1,8 +1,12 @@
 # PakNewsHub
 
-International news for Pakistani readers, in **English and Urdu**. Real
-stories are fetched from the RSS feeds of BBC, The Guardian, Dawn and DW every
-15 minutes, and Claude translates each headline and summary into Urdu.
+The latest news from Pakistan and around the world, in two editions. Stories
+are fetched every 15 minutes and organised into Pakistan, World, Business,
+Technology, Sports, Health, Science and Entertainment.
+
+- **English edition**: 32 sources (7 Pakistani, 25 international), 63 RSS feeds
+- **Urdu edition**: 5 Urdu-language sources (Jang, Express, ARY News, BBC Urdu,
+  Independent Urdu), 11 RSS feeds. Real Urdu journalism, not machine translation.
 
 **Stack:** React 19 · Vite · Tailwind CSS 4 · React Router 7 · TanStack Query ·
 Zustand. The backend is Express 5 · MongoDB (Mongoose).
@@ -10,14 +14,15 @@ Zustand. The backend is Express 5 · MongoDB (Mongoose).
 ## Features
 
 - Home, category, source, article, search and saved-stories pages
-- **Urdu mode**: switches the whole UI to Urdu with right-to-left layout (saved per browser)
+- **Urdu edition**: the اردو button switches the UI to Urdu (right-to-left) and the
+  news to the Urdu sources. Saved per browser.
 - **Dark mode**: follows the OS by default, saved per browser
 - Search with relevance ranking, category, source and date filters, and sorting
 - Bookmarks saved in the browser
 - Share (native share sheet or copy link) and WhatsApp share
 - Newsletter signup (needs the API server)
 - **Real news** from RSS feeds, refreshed every 15 minutes, with photos
-- **Automatic Urdu translation** of headlines and summaries (Claude, opt-in)
+- **Automatic Urdu translation** of English headlines and summaries (Claude, opt-in, off by default)
 - Responsive layout, loading skeletons, error states with retry, 404 pages
 
 ## Quick start (frontend only)
@@ -54,14 +59,14 @@ CORS setup in development.
 > Git Bash on Windows, `VITE_API_URL=/api npm run dev` gets rewritten to a
 > Windows path (`C:/Program Files/Git/api`).
 
-## Real news and Urdu translation
+## Real news, editions and Urdu translation
 
 The **worker** is a separate process that keeps the database filled:
 
 ```bash
 cd server
 npm run seed:real-only       # sources & categories only (removes the demo stories)
-npm run ingest               # fetch all feeds once (≈25 s), then exit
+npm run ingest               # fetch all feeds once + find missing photos, then exit
 npm run worker               # keep running: feeds every 15 min, translation every minute
 ```
 
@@ -74,11 +79,52 @@ How ingestion works (`server/src/ingest/`):
    and tag stories that mention Pakistan (this powers "Pakistan Focus").
 3. **Save** only new stories, keyed by URL (`$setOnInsert`). Re-fetching is free,
    and existing articles, including their translations, are never overwritten.
-4. MongoDB **deletes** real articles automatically after 60 days.
+4. **Find photos** (`photos.js`) for new stories whose feed had none (Express,
+   ARY Urdu, Euronews, CNBC, Tribune…). It opens the story's own page, reads
+   only its `<head>`, and saves the `og:image` photo. Polite: 4 pages at a time,
+   120 per run, stories from the last 7 days. It skips the site's logo or
+   "default" picture, and a photo shared by 3+ stories (e.g. a live-blog
+   cover), since a wrong photo is worse than none. A site that blocks us is
+   skipped for that run; each story is tried at most 3 times. Stories that
+   still have no photo show a tile in the section's colour with its icon.
+5. MongoDB **deletes** real articles automatically after 60 days.
 
 > We store only the headline, a short summary, the image link and the source
 > link, never the full article. The article page links to the original
 > ("Read on BBC World").
+
+### Editions
+
+Every story has a `language`: the language of the feed it came from (`en` or
+`ur`). The site always asks for one edition (`?edition=en|ur`, sent
+automatically by the `useArticles` / `useArticleCounts` hooks):
+
+- **English** = every story not written in Urdu
+- **Urdu** = stories written in Urdu, plus any English story that already has an
+  Urdu headline (the demo stories, or translated ones if translation is on)
+
+Lists, counts, search, the ticker and the footer all follow the edition. A
+source page always shows its own edition, so `/source/jang` works from the
+English site too.
+
+Urdu feeds need extra cleaning, all in `normalize.js`: Urdu category labels
+(کھیل, بزنس, انٹر نیشنل…), Pakistan detection in Urdu (پاکستان, کراچی,
+عمران خان…), Jang's photo captions at the start of summaries ("فائل فوٹو"),
+and `fallback: 'detect'` for feeds with no labels (BBC Urdu, Independent Urdu):
+Pakistan if the headline is about Pakistan, else World.
+
+### Adding a news source
+
+1. Add the source to `src/data/sources.js` (id, name, logo letters, country,
+   homepage, region, colours, and `'ur'` at the end for an Urdu source).
+2. Add its feed URLs to `server/src/ingest/feeds.js` (`URDU_FEEDS` for Urdu),
+   with a fixed `category`, or `category: 'auto'` plus a `fallback` for mixed
+   "latest" feeds. Specific feeds go before general ones: when a story is in
+   two feeds, the first wins.
+3. Run `npm run seed:real-only` (refreshes the source list) and `npm run ingest`.
+
+Before adding a feed, check that it is still updated. Several big publishers'
+feeds are years out of date.
 
 ### Urdu translation (opt-in, paid)
 
@@ -98,8 +144,8 @@ npm run translate -- --limit 5   # try 5 stories and check the quality and token
 Translation works as a queue (`server/src/translate/`). The newest stories are
 translated first, and a story is "claimed" so two workers never translate it
 twice. A bad answer is retried up to 3 times. A rate limit or a missing key
-puts the story back without using an attempt. Until a story is translated, the
-site shows its English headline in Urdu mode.
+puts the story back without using an attempt. Only English stories are
+queued. A translated story also appears in the Urdu edition.
 
 ### Production
 
@@ -131,6 +177,7 @@ server/src/
   app.js                 Express app (routes, CORS, errors, static hosting)
   worker.js              background jobs: feeds every 15 min, translation every minute
   ingest/                feeds.js (feed list) · normalize.js (cleaning) · ingest.js (fetch + save)
+                         · photos.js (photos from story pages)
   translate/             Urdu translation queue (Claude API)
   models/                Article, Source, Category, Subscriber
   services/articleQuery.js  MongoDB version of the query rules
@@ -151,7 +198,7 @@ server/src/
 | POST | `/api/subscribers` | `{ email }` → newsletter signup |
 | GET | `/api/health` | Server + DB status |
 
-Parameters for `/api/articles` and `/counts`: `q`, `category`, `source`
+Parameters for `/api/articles` and `/counts`: `edition` (`en|ur`; leave out for both), `q`, `category`, `source`
 (comma-separated), `tag`, `featured`, `breaking`, `exclude`,
 `range` (`any|1h|24h|7d|30d`), `sort` (`latest|views|shares|relevance`),
 `limit` (max 100), `offset`.

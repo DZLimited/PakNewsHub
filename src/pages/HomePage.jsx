@@ -85,7 +85,7 @@ export default function HomePage() {
 
           <section className="widget">
             <h2 className="widget-title">
-              <Flag size={15} className="text-primary" /> {t('pakistanFocus')} 🇵🇰
+              <Flag size={15} className="text-primary" /> {t('pakistanFocus')}
             </h2>
             <QueryBoundary query={pakistan} fallback={<div className="space-y-4"><CardSkeleton variant="compact" count={4} /></div>}>
               {({ items }) => <SidebarList items={items} />}
